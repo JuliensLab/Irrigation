@@ -3,6 +3,7 @@ from Pump import start_pump, stop_pump, stop_all_pumps, seconds_for_pump
 from log import log_initialize, log_add_entry
 from time import sleep, time
 from helpers import print_enviro
+from sendToServer import send_data_to_server
 import os
 import os.path
 from gpiozero import CPUTemperature
@@ -50,6 +51,7 @@ def main():
         while True:
             try:
                 print_enviro(cpu)
+                send_data_to_server(cpu, log_pump_ml_added)
                 current_time = time()
                 if current_time > log_previous_time + seconds_between_logs:
                     log_previous_time = current_time
