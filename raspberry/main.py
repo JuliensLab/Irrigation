@@ -53,7 +53,8 @@ def main():
                 current_time = time()
                 if current_time > log_previous_time + seconds_between_logs:
                     log_previous_time = current_time
-                    log_add_entry(Containers, cpu, local_filepath_log)
+                    log_add_entry(Containers, cpu,
+                                  local_filepath_log, log_pump_ml_added)
                 for container_id in Containers:
                     print("container", container_id)
                     sensor_percent_wet = get_sensor_percent_wet(container_id)

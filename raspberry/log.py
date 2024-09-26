@@ -22,8 +22,7 @@ def log_initialize(Containers, local_filepath_log):
     print("Log initialized")
 
 
-def log_add_entry(Containers, cpu, local_filepath_log):
-    global log_pump_ml_added
+def log_add_entry(Containers, cpu, local_filepath_log, log_pump_ml_added):
     cpuTempC = round(cpu.temperature, 1)
     roomTempC_SHT40, roomHumiditySHT40 = getTemperatureHumiditySHT40()
     roomTempC_BMP280, roomPressureBMP280 = getTemperaturePressureBMP280()
