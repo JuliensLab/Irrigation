@@ -56,7 +56,6 @@ def main():
                     log_add_entry(Containers, cpu,
                                   local_filepath_log, log_pump_ml_added)
                 for container_id in Containers:
-                    print("container", container_id)
                     sensor_percent_wet = get_sensor_percent_wet(container_id)
                     target_too_dry = target_threshold[container_id[0]]
                     if sensor_percent_wet < target_too_dry:
