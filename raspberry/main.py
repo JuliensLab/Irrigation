@@ -51,7 +51,7 @@ def main():
         while True:
             try:
                 print_enviro(cpu)
-                send_data_to_server(cpu, log_pump_ml_added)
+                send_data_to_server(cpu, log_pump_ml_added, Containers)
                 current_time = time()
                 if current_time > log_previous_time + seconds_between_logs:
                     log_previous_time = current_time

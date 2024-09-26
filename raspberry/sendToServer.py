@@ -1,6 +1,5 @@
 import requests
 import json
-from main import Containers
 from TemperatureHumidity import getTemperatureHumiditySHT40
 from Pressure import getTemperaturePressureBMP280
 from CapacitiveSoilSensor import get_raw_sensor_value, get_calibrated_value
@@ -13,7 +12,7 @@ api = {"url": 'https://irrigationmars.com/api/api_receive_short_term_data.php',
        "key": 'hiufew8GQRYHW%W651#!!&79uojjbho89gRWpio'}
 
 
-def send_data_to_server(cpu, log_pump_ml_added):
+def send_data_to_server(cpu, log_pump_ml_added, Containers):
     global api
     cpuTempC = round(cpu.temperature, 1)
     roomTempC_SHT40, roomHumiditySHT40 = getTemperatureHumiditySHT40()
