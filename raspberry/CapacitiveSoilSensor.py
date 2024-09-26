@@ -30,7 +30,7 @@ def get_raw_sensor_value(sensor_id):
 
 def get_sensor_percent_wet(container_id):
     val = get_raw_sensor_value(container_id)
-    return get_calibrated_value(val)
+    return get_calibrated_value(container_id, val)
 
 
 def get_calibrated_value(container_id, sensor_value):

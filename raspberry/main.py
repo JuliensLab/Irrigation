@@ -17,7 +17,7 @@ target_threshold = {"A": 0.8, "B": 0.4}
 ml_to_add_each_time = 10
 time_between_checks_seconds = 5
 
-local_filepath_log = "/home/pi/Irrigation/log/log.csv"
+local_filepath_log = "/home/pi/Irrigation/raspberry/log/log.csv"
 seconds_between_logs = 60 * 10
 
 # initialize
