@@ -23,34 +23,39 @@ SensorCalibration = {"dry": {"A1": 0.911, "A2": 0.747,
 
 print("Sensors initialized")
 
-def get_sensor_value(sensor_id):
+
+def get_raw_sensor_value(sensor_id):
     return round(adc.read_voltage(Sensors[sensor_id]), 4)
 
 
-def interpretSensor(container_id):
-    val = get_sensor_value(container_id)
-    return calibratedValue(val)
+def get_sensor_percent_wet(container_id):
+    val = get_raw_sensor_value(container_id)
+    return get_calibrated_value(val)
 
-def calibratedValue(container_id, sensor_value):
+
+def get_calibrated_value(container_id, sensor_value):
     dry = SensorCalibration['dry'][container_id]
     wet = SensorCalibration['wet'][container_id]
     return round(min(1, max(0, (sensor_value-dry)/(wet-dry))), 2)
+
 
 def test():
     print(", ".join(Sensors))
     while True:
         sensor_data = []
         for channel_name, pin in Sensors.items():
-            sensor_value = get_sensor_value(channel_name)
+            sensor_value = get_raw_sensor_value(channel_name)
             sensor_data.append(str(sensor_value))
-            
+
         for channel_name, pin in Sensors.items():
-            sensor_value = get_sensor_value(channel_name)
-            sensor_data.append(str(calibratedValue(channel_name, sensor_value)))
-            
+            sensor_value = get_raw_sensor_value(channel_name)
+            sensor_data.append(
+                str(get_calibrated_value(channel_name, sensor_value)))
+
         print(", ".join(sensor_data))
-        
+
         sleep(1)
-        
+
+
 if __name__ == "__main__":
     test()
