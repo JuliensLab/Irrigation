@@ -14,7 +14,7 @@ def log_initialize(Containers, local_filepath_log):
     for i in range(len(Containers)):
         header += f",{Containers[i]}_pct_humidity"
     for i in range(len(Containers)):
-        header += f",{Containers[i]}_pump_ml_since_prev_log"
+        header += f",{Containers[i]}_pump_ml_since_prev_entry"
 
     with open(local_filepath_log, "a") as log:
         if os.stat(local_filepath_log).st_size == 0:
@@ -48,16 +48,16 @@ def log_add_entry(Containers, cpu, local_filepath_log):
     sensor_data = []
 
     for container_id in Containers:
-        raw_value = str(get_raw_sensor_value(container_id))
-        calibrated_value = str(get_calibrated_value(container_id, raw_value))
-        pump_ml_added = str(f"{log_pump_ml_added[container_id]:.1f}")
+        raw_value = get_raw_sensor_value(container_id)
+        calibrated_value = get_calibrated_value(container_id, raw_value)
+        pump_ml_added = f"{log_pump_ml_added[container_id]:.1f}"
 
         # Append a dictionary with the sensor values to the list
         sensor_data.append({
             # 'container_id': container_id,
-            'humidity_raw': raw_value,
-            'humidity_pct': calibrated_value,
-            'pump_ml_added': pump_ml_added
+            'humidity_raw': str(raw_value),
+            'humidity_pct': str(calibrated_value),
+            'pump_ml_added': str(pump_ml_added)
         })
 
     # Add humidity values and pump times separately
