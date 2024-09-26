@@ -2,7 +2,7 @@ import os
 from TemperatureHumidity import getTemperatureHumiditySHT40
 from Pressure import getTemperaturePressureBMP280
 from CapacitiveSoilSensor import get_raw_sensor_value, get_calibrated_value
-from main import get_datetime_string
+from helpers import get_datetime_string
 
 
 def log_initialize(Containers, local_filepath_log):
