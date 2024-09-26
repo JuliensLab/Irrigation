@@ -18,7 +18,7 @@ ml_to_add_each_time = 10
 time_between_checks_seconds = 5
 
 local_filepath_log = "/home/pi/Irrigation/raspberry/log/log.csv"
-seconds_between_logs = 60 * 10
+seconds_between_logs = 60 * 2
 
 # initialize
 
@@ -61,6 +61,10 @@ def main():
                     if sensor_percent_wet < target_too_dry:
                         print("Container", container_id,
                               "(", sensor_percent_wet, ") too dry - humidifying")
+                        humidify_slightly(container_id, ml_to_add_each_time)
+                    elif sensor_percent_wet > target_too_dry + 0.03:
+                        print("Container", container_id,
+                              "(", sensor_percent_wet, ") too wet - oops! waiting it out")
                         humidify_slightly(container_id, ml_to_add_each_time)
                     else:
                         print("Container", container_id,
