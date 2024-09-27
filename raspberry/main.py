@@ -67,7 +67,6 @@ def main():
                     elif sensor_percent_wet > target_too_dry + 0.03:
                         print("Container", container_id,
                               "(", sensor_percent_wet, ") too wet - oops! waiting it out")
-                        humidify_slightly(container_id, ml_to_add_each_time)
                     else:
                         print("Container", container_id,
                               "(", sensor_percent_wet, ") OK")

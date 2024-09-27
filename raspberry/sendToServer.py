@@ -8,7 +8,7 @@ from helpers import get_datetime_string
 
 # Global API configuration
 # Replace with your actual API URL and key
-api = {"url": 'https://irrigationmars.com/api/api_receive_short_term_data.php',
+api = {"url": 'https://irrigationmars.com/api/api_store_short_term_data.php',
        "key": 'hiufew8GQRYHW%W651#!!&79uojjbho89gRWpio'}
 
 
@@ -34,17 +34,19 @@ def send_data_to_server(cpu, log_pump_ml_added, Containers):
         raw_value = get_raw_sensor_value(container_id)
         calibrated_value = get_calibrated_value(container_id, raw_value)
         pump_ml_added = int(log_pump_ml_added[container_id])
-
-        # Append a dictionary with the sensor values to the list
-        sensor_data.append({
+        data = {
             'container_id': container_id,
             'humidity_raw': raw_value,
             'humidity_pct': calibrated_value,
             'pump_ml_added': pump_ml_added
-        })
+        }
+    
+        # Append a dictionary with the sensor values to the list
+        sensor_data.append(data)
 
     # Create the payload for the API request
     payload = {
+        'api_key': api["key"],
         "date_time": datetime,
         "cpu_temp": cpuTempC,
         "room_temp_SHT40": roomTempC_SHT40,
@@ -55,8 +57,10 @@ def send_data_to_server(cpu, log_pump_ml_added, Containers):
     }
 
     # Send the data to the server
-    headers = {'Content-Type': 'application/json', 'API_KEY': api["key"]}
+    print("sending to server")
+    headers = {'Content-Type': 'application/json'}
     response = requests.post(api["url"], headers=headers, json=payload)
+    
 
     if response.status_code == 200:
         print("Data sent successfully:", response.json())
