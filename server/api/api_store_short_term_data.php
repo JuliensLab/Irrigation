@@ -11,9 +11,6 @@ include('check_ip.php');
 include('log.php');
 
 // Log an entry to test the function
-log_message("Script started.");
-
-log_message('db details:', $config['host'], $config['username'], $config['password'], $config['db_name']);
 
 // Create database connection
 $conn = new mysqli($config['host'], $config['username'], $config['password'], $config['db_name']);
@@ -26,8 +23,6 @@ if ($conn->connect_error) {
 
 // Get the client's IP address
 $client_ip = $_SERVER['REMOTE_ADDR'];
-log_message("Client IP: $client_ip");
-
 
 // Check if the client's IP is within the trusted range
 if (!is_ip_allowed($client_ip)) {
@@ -43,8 +38,6 @@ $data = json_decode(file_get_contents("php://input"), true);
 // Authenticate using API key
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $received_api_key = $data['api_key'];
-    log_message("received key:", $received_api_key, "api_key:", $config['api_key']);
-    log_message($_SERVER['HTTP_API_KEY'], $_SERVER['API_KEY']);
     if ($received_api_key !== $config['api_key']) {
         log_message("Unauthorized access attempt with API key: $received_api_key");
         http_response_code(403);
@@ -93,8 +86,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $humidity_raw = floatval($container['humidity_raw']);
         $humidity_pct = floatval($container['humidity_pct']);
         $pump_ml_added = intval($container['pump_ml_added']); // Cast to integer
-        log_message($container);
-
         // Execute statement for container data
         if (!$stmtContainerShortTerm->execute()) {
             log_message("Database insert failed for container ID $container_id: " . $stmtContainerShortTerm->error);
@@ -107,6 +98,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Close short-term statements
     $stmtShortTerm->close();
     $stmtContainerShortTerm->close();
+
+    // Delete entries older than 1 hour
+    $deleteShortTermQuery = "DELETE FROM short_term_sensor_data WHERE date_time < NOW() - INTERVAL 1 HOUR";
+    if ($conn->query($deleteShortTermQuery)) {
+        $deletedCountShortTerm = $conn->affected_rows;
+        if ($deletedCountShortTerm > 0) {
+            log_message("$deletedCountShortTerm entries deleted from short_term_sensor_data.");
+        }
+    } else {
+        log_message("Database delete failed for short-term sensor data: " . $conn->error);
+    }
+
+    $deleteContainerQuery = "DELETE FROM short_term_container_data WHERE short_term_sensor_data_id NOT IN (SELECT id FROM short_term_sensor_data)";
+    if ($conn->query($deleteContainerQuery)) {
+        $deletedCountContainer = $conn->affected_rows;
+        if ($deletedCountContainer > 0) {
+            log_message("$deletedCountContainer entries deleted from short_term_container_data.");
+        }
+    } else {
+        log_message("Database delete failed for short-term container data: " . $conn->error);
+    }
 
     // Close connection
     $conn->close();

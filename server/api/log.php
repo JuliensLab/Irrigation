@@ -3,7 +3,7 @@
 // Logging function
 function log_message(...$messages)
 {
-    $log_file = '/home/u478317206/domains/irrigationmars.com/public_html/logfile.log'; // Use the absolute path
+    $log_file = '/home/u478317206/domains/irrigationmars.com/public_html/api/logfile.log'; // Use the absolute path
     $timestamp = date("Y-m-d H:i:s");
     $formatted_messages = [];
 
