@@ -1,6 +1,6 @@
 from TemperatureHumidity import getTemperatureHumiditySHT40
 from Pressure import getTemperaturePressureBMP280
-
+from datetime import datetime, timezone
 from time import strftime
 
 
@@ -24,3 +24,7 @@ def print_enviro(cpu):
 
 def get_datetime_string():
     return strftime("%Y-%m-%d %H:%M:%S")
+
+
+def get_datetime_utc_string():
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")

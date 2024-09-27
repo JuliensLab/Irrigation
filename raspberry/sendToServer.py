@@ -3,7 +3,7 @@ import json
 from TemperatureHumidity import getTemperatureHumiditySHT40
 from Pressure import getTemperaturePressureBMP280
 from CapacitiveSoilSensor import get_raw_sensor_value, get_calibrated_value
-from helpers import get_datetime_string
+from helpers import get_datetime_utc_string
 
 
 # Global API configuration
@@ -25,7 +25,7 @@ def send_data_to_server(cpu, log_pump_ml_added, Containers):
     roomPressureBMP280 = round(roomPressureBMP280, 1)
 
     # Get the current datetime in the correct format
-    datetime = get_datetime_string()  # This should return a formatted timestamp
+    datetime = get_datetime_utc_string()  # This should return a formatted timestamp
 
     # Gather dynamic sensor values
     sensor_data = []
@@ -40,13 +40,13 @@ def send_data_to_server(cpu, log_pump_ml_added, Containers):
             'humidity_pct': calibrated_value,
             'pump_ml_added': pump_ml_added
         }
-    
+
         # Append a dictionary with the sensor values to the list
         sensor_data.append(data)
 
     # Create the payload for the API request
     payload = {
-        'api_key': api["key"],
+        "api_key": api["key"],
         "date_time": datetime,
         "cpu_temp": cpuTempC,
         "room_temp_SHT40": roomTempC_SHT40,
@@ -60,7 +60,6 @@ def send_data_to_server(cpu, log_pump_ml_added, Containers):
     print("sending to server")
     headers = {'Content-Type': 'application/json'}
     response = requests.post(api["url"], headers=headers, json=payload)
-    
 
     if response.status_code == 200:
         print("Data sent successfully:", response.json())
