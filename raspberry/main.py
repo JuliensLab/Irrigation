@@ -114,7 +114,8 @@ def check_and_water(container_id):
     target_percent_wet = target_threshold[container_id[0]]  # 'A' or 'B'
 
     # Use the PID controller to determine the amount of water to add
-    ml_to_add = pid_controller.compute(target_percent_wet, sensor_percent_wet)
+    ml_to_add = round(pid_controller.compute(
+        target_percent_wet, sensor_percent_wet))
 
     # Calculate the allowed water based on 24-hour limit
     ml_to_add = watering_allowed_ml(container_id, ml_to_add)
