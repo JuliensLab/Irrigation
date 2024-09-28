@@ -35,11 +35,11 @@ def get_raw_sensor_value(sensor_id):
 
     # Take readings
     for _ in range(num_samples):
-        sleep(0.2)
         try:
             total += get_one_raw_sensor_value(sensor_id)
             successful_attempts += 1
-        except ADCPi.ADCPi.TimeoutError:
+            sleep(0.2)
+        except ADCPi.TimeoutError:  # Correctly reference TimeoutError
             print(
                 f"TimeoutError: Could not read sensor {sensor_id}. Retrying...")
 
