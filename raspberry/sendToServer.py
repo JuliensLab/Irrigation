@@ -33,7 +33,11 @@ def send_data_to_server(cpu, log_pump_ml_added, Containers):
     for container_id in Containers:
         raw_value = get_raw_sensor_value(container_id)
         calibrated_value = get_calibrated_value(container_id, raw_value)
-        pump_ml_added = int(log_pump_ml_added[container_id])
+
+        # Calculate total pump ml added from log_pump_ml_added
+        # Sum ml added entries
+        pump_ml_added = sum(entry["ml"]
+                            for entry in log_pump_ml_added[container_id])
         data = {
             'container_id': container_id,
             'humidity_raw': raw_value,
