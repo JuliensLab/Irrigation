@@ -106,41 +106,45 @@ def log_and_upload(cpu, log_pump_ml_added, Containers):
 
 # Create an instance of the PID controller
 # parameters set for a check every 60 seconds
-pid_controller = PID.PIDController(Kp=20.0, Ki=0.1, Kd=4000.0)
+pid_controller = PID.PIDController(Kp=5.0, Ki=0.05, Kd=2000.0)
 
 
 def check_and_water(container_id):
     sensor_percent_wet = get_sensor_percent_wet(container_id)
     target_percent_wet = target_threshold[container_id[0]]  # 'A' or 'B'
 
-    # Use the PID controller to determine the amount of water to add
-    ml_to_add = round(pid_controller.compute(
-        target_percent_wet, sensor_percent_wet))
-
-    # Calculate the allowed water based on 24-hour limit
-    ml_to_add = watering_allowed_ml(container_id, ml_to_add)
-
-    if ml_to_add > 0:
-        global log_pump_ml_added
-        # Log ml added with timestamp
-        current_time = datetime.now()
-        log_pump_ml_added[container_id].append(
-            {"time": current_time.isoformat(), "ml": ml_to_add})
-        save_log_pump_ml_added()  # Save log of ml added
-        print(
-            f"Container {container_id} ({sensor_percent_wet * 100:.1f}%) too dry - humidifying with {ml_to_add:.0f} ml")
-
-        # Create and track pump thread
-        pump_thread = threading.Thread(
-            target=add_ml_to_container, args=(container_id, ml_to_add))
-        pump_threads.append(pump_thread)
-        pump_thread.start()
-
-    elif sensor_percent_wet > target_percent_wet + 0.03:
+    if sensor_percent_wet > target_percent_wet + 0.03:
         print(
             f"Container {container_id} ({sensor_percent_wet * 100:.1f}%) too wet - waiting it out")
-    else:
+    elif sensor_percent_wet > target_percent_wet:
         print(f"Container {container_id} ({sensor_percent_wet * 100:.1f}%) OK")
+    else:
+        # Use the PID controller to determine the amount of water to add
+        ml_to_add = round(pid_controller.compute(
+            target_percent_wet, sensor_percent_wet))
+        print(container_id, sensor_percent_wet, target_percent_wet, ml_to_add)
+
+        # Calculate the allowed water based on 24-hour limit
+        ml_to_add = watering_allowed_ml(container_id, ml_to_add)
+
+        if ml_to_add > 0:
+            global log_pump_ml_added
+            # Log ml added with timestamp
+            current_time = datetime.now()
+            log_pump_ml_added[container_id].append(
+                {"time": current_time.isoformat(), "ml": ml_to_add})
+            save_log_pump_ml_added()  # Save log of ml added
+            print(
+                f"Container {container_id} ({sensor_percent_wet * 100:.1f}%) too dry - humidifying with {ml_to_add:.0f} ml (PID)")
+
+            # Create and track pump thread
+            pump_thread = threading.Thread(
+                target=add_ml_to_container, args=(container_id, ml_to_add))
+            pump_threads.append(pump_thread)
+            pump_thread.start()
+        else:
+            print(
+                f"Container {container_id} ({sensor_percent_wet * 100:.1f}%) no watering needed at this time (PID)")
 
 
 def main():

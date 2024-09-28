@@ -34,6 +34,7 @@ def get_raw_sensor_value(sensor_id):
     # Take 10 readings
     for _ in range(num_samples):
         total += get_one_raw_sensor_value(sensor_id)
+        sleep(0.2)
     # Return the average
     return round(total / num_samples, 4)
 
