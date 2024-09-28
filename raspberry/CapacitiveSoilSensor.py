@@ -31,12 +31,27 @@ def get_one_raw_sensor_value(sensor_id):
 def get_raw_sensor_value(sensor_id):
     total = 0
     num_samples = 10
-    # Take 10 readings
+    successful_attempts = 0
+
+    # Take readings
     for _ in range(num_samples):
-        total += get_one_raw_sensor_value(sensor_id)
         sleep(0.2)
-    # Return the average
-    return round(total / num_samples, 4)
+        try:
+            total += get_one_raw_sensor_value(sensor_id)
+            successful_attempts += 1
+        except ADCPi.ADCPi.TimeoutError:
+            print(
+                f"TimeoutError: Could not read sensor {sensor_id}. Retrying...")
+
+    # Avoid division by zero
+    if successful_attempts > 0:
+        average_value = round(total / successful_attempts, 4)
+        print(
+            f"Sensor {sensor_id} - Successful attempts: {successful_attempts}, Average value: {average_value}")
+        return average_value
+    else:
+        print(f"Sensor {sensor_id} - No successful attempts. Returning None.")
+        return None
 
 
 def get_sensor_percent_wet(container_id):
