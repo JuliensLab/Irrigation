@@ -102,15 +102,45 @@ def log_and_upload(cpu, log_pump_ml_added, Containers):
         send_data_to_server(cpu, log_pump_ml_added, Containers)
 
 
+class PIDController:
+    def __init__(self, Kp, Ki, Kd):
+        self.Kp = Kp
+        self.Ki = Ki
+        self.Kd = Kd
+        self.previous_error = 0
+        self.integral = 0
+
+    def compute(self, setpoint, measurement):
+        error = setpoint - measurement
+        self.integral += error
+        derivative = error - self.previous_error
+        output = (self.Kp * error) + (self.Ki * self.integral) + \
+            (self.Kd * derivative)
+        self.previous_error = error
+        return output
+
+
+# Create an instance of the PID controller
+pid_controller = PIDController(Kp=1.0, Ki=0.1, Kd=0.05)
+
+
 def check_and_water(container_id):
     sensor_percent_wet = get_sensor_percent_wet(container_id)
     target_percent_wet = target_threshold[container_id[0]]
 
-    if can_water(container_id) and sensor_percent_wet < target_percent_wet:
+    # Use the PID controller to determine the amount of water to add
+    water_to_add = pid_controller.compute(
+        target_percent_wet, sensor_percent_wet)
+
+    # Clamp the water amount to avoid exceeding limits
+    water_to_add = max(
+        0, min(water_to_add, max_ml_per_container - log_pump_ml_added[container_id]))
+
+    if can_water(container_id) and water_to_add > 0:
         print(
-            f"Container {container_id} ({sensor_percent_wet}) too dry - humidifying")
+            f"Container {container_id} ({sensor_percent_wet}) too dry - humidifying with {water_to_add:.2f} ml")
         threading.Thread(target=humidify_slightly, args=(
-            container_id, ml_to_add_each_time)).start()
+            container_id, water_to_add)).start()
     elif sensor_percent_wet > target_percent_wet + 0.03:
         print(
             f"Container {container_id} ({sensor_percent_wet}) too wet - oops! waiting it out")
