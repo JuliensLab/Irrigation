@@ -93,15 +93,15 @@ def watering_allowed_ml(container_id, add_ml_requested):
 
 
 def log_and_upload(cpu, log_pump_ml_added, Containers):
-    try:
-        # Log data to file
-        log_add_entry(Containers, cpu, local_filepath_log, log_pump_ml_added)
+    # try:
+    # Log data to file
+    log_add_entry(Containers, cpu, local_filepath_log, log_pump_ml_added)
 
-        # Attempt to send data to the server
-        with upload_lock:
-            send_data_to_server(cpu, log_pump_ml_added, Containers)
-    except Exception as e:
-        print(f"Error logging and uploading data: {e}")
+    # Attempt to send data to the server
+    with upload_lock:
+        send_data_to_server(cpu, log_pump_ml_added, Containers)
+    # except Exception as e:
+    #     print(f"Error logging and uploading data: {e}")
 
 
 # Create an instance of the PID controller
