@@ -127,7 +127,7 @@ def check_and_water(container_id):
             {"time": current_time.isoformat(), "ml": ml_to_add})
         save_log_pump_ml_added()  # Save log of ml added
         print(
-            f"Container {container_id} ({sensor_percent_wet * 100:.2f}%) too dry - humidifying with {ml_to_add:.2f} ml")
+            f"Container {container_id} ({sensor_percent_wet * 100:.1f}%) too dry - humidifying with {ml_to_add:.0f} ml")
 
         # Create and track pump thread
         pump_thread = threading.Thread(
@@ -137,9 +137,9 @@ def check_and_water(container_id):
 
     elif sensor_percent_wet > target_percent_wet + 0.03:
         print(
-            f"Container {container_id} ({sensor_percent_wet * 100:.2f}%) too wet - waiting it out")
+            f"Container {container_id} ({sensor_percent_wet * 100:.1f}%) too wet - waiting it out")
     else:
-        print(f"Container {container_id} ({sensor_percent_wet * 100:.2f}%) OK")
+        print(f"Container {container_id} ({sensor_percent_wet * 100:.1f}%) OK")
 
 
 def main():

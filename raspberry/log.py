@@ -49,30 +49,34 @@ def log_add_entry(Containers, cpu, local_filepath_log, log_pump_ml_added):
     for container_id in Containers:
         raw_value = get_raw_sensor_value(container_id)
         calibrated_value = get_calibrated_value(container_id, raw_value)
-        pump_ml_added = f"{log_pump_ml_added[container_id]:.1f}"
+
+        # Access the last entry in the log for pump_ml_added
+        pump_ml_added_value = sum(
+            entry["ml"] for entry in log_pump_ml_added[container_id]) if log_pump_ml_added[container_id] else 0
 
         # Append a dictionary with the sensor values to the list
         sensor_data.append({
-            # 'container_id': container_id,
             'humidity_raw': str(raw_value),
             'humidity_pct': str(calibrated_value),
-            'pump_ml_added': str(pump_ml_added)
+            # Use the calculated value here
+            'pump_ml_added': str(pump_ml_added_value)
         })
 
     # Add humidity values and pump times separately
     humidity_raw_values = [data['humidity_raw'] for data in sensor_data]
     humidity_pct_values = [data['humidity_pct'] for data in sensor_data]
-    pump_ml_added = [data['pump_ml_added'] for data in sensor_data]
+    pump_ml_added_values = [data['pump_ml_added'] for data in sensor_data]
 
     log_entry += "," + ",".join(humidity_raw_values)
     log_entry += "," + ",".join(humidity_pct_values)
-    log_entry += "," + ",".join(pump_ml_added) + "\n"
+    log_entry += "," + ",".join(pump_ml_added_values) + "\n"
 
     # Write the log entry to the file
     with open(local_filepath_log, "a") as log:
         log.write(log_entry)
 
     # Reset pump times
-    log_pump_ml_added = {container_id: 0 for container_id in Containers}
+    log_pump_ml_added = {container_id: []
+                         for container_id in Containers}  # Reset to empty list
 
     print("Log entry added")
