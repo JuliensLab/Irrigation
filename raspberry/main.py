@@ -1,8 +1,10 @@
+import PID
 import json
 from CapacitiveSoilSensor import get_sensor_percent_wet
 from Pump import start_pump, stop_pump, stop_all_pumps, seconds_for_pump
 from log import log_initialize, log_add_entry
 from time import sleep, time
+from datetime import datetime, timedelta
 from helpers import print_enviro
 from sendToServer import send_data_to_server
 import os
@@ -17,135 +19,127 @@ cpu = CPUTemperature()
 
 Containers = ["A1", "A2", "A3", "B1", "B2", "B3"]
 target_threshold = {"A": 0.8, "B": 0.4}
-ml_to_add_each_time = 10
-max_ml_per_container = 100  # Maximum ml allowed to add per container over time
+
+# Max ml allowed per container within 24 hours
+max_ml_per_24h = 1000
 
 local_filepath_log = "/home/pi/Irrigation/raspberry/log/log.csv"
-# Path for saving cooldowns
-cooldown_file_path = "/home/pi/Irrigation/raspberry/log/cooldown.json"
 # Path for saving ml added
 pump_ml_log_file_path = "/home/pi/Irrigation/raspberry/log/pump_ml_log.json"
-seconds_between_logs = 60 * 2
+# To avoid race conditions on uploading
+upload_lock = threading.Lock()
+# Modified log to track water added with timestamps
+log_pump_ml_added = {container_id: [] for container_id in Containers}
 
-# Initialize
-log_previous_time = -9999
-upload_lock = threading.Lock()  # To avoid race conditions on uploading
-# Track watering cooldown
-watering_cooldown = {container_id: 0 for container_id in Containers}
-log_pump_ml_added = {
-    container_id: 0 for container_id in Containers}  # Track ml added
-
-
-def load_cooldown():
-    global watering_cooldown
-    if os.path.isfile(cooldown_file_path):
-        with open(cooldown_file_path, 'r') as f:
-            watering_cooldown = json.load(f)
-
-
-def save_cooldown():
-    with open(cooldown_file_path, 'w') as f:
-        json.dump(watering_cooldown, f)
+# Track pump threads for graceful stop
+pump_threads = []
+pump_thread_stop_event = threading.Event()
 
 
 def load_log_pump_ml_added():
     global log_pump_ml_added
     if os.path.isfile(pump_ml_log_file_path):
-        with open(pump_ml_log_file_path, 'r') as f:
-            log_pump_ml_added = json.load(f)
+        try:
+            with open(pump_ml_log_file_path, 'r') as f:
+                log_pump_ml_added = json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"Error loading pump ml log file: {e}")
+            # Use an empty log if the file couldn't be loaded
+            log_pump_ml_added = {container_id: []
+                                 for container_id in Containers}
 
 
 def save_log_pump_ml_added():
-    with open(pump_ml_log_file_path, 'w') as f:
-        json.dump(log_pump_ml_added, f)
+    try:
+        with open(pump_ml_log_file_path, 'w') as f:
+            json.dump(log_pump_ml_added, f)
+    except IOError as e:
+        print(f"Error saving pump ml log file: {e}")
 
 
-def humidify_slightly(container_id, ml_to_add):
-    global log_pump_ml_added
+def add_ml_to_container(container_id, ml_to_add):
     start_time = time()
-
-    # Start the pump
-    start_pump(container_id)
     seconds_this_pump = seconds_for_pump(container_id, ml_to_add)
+    start_pump(container_id)
 
-    # Wait for the pump to finish
-    while time() - start_time < seconds_this_pump:
-        sleep(0.1)
-
-    # Stop the pump
-    stop_pump(container_id)
-    log_pump_ml_added[container_id] += ml_to_add
-    # Set cooldown for 1 hour after watering
-    watering_cooldown[container_id] = time() + 3600
-    save_cooldown()  # Save cooldown after watering
-    save_log_pump_ml_added()  # Save log of ml added after watering
+    try:
+        # Wait for the pump to finish or until stop event is set
+        while time() - start_time < seconds_this_pump:
+            if pump_thread_stop_event.is_set():
+                break
+            sleep(0.2)
+    finally:
+        # Stop the pump in case of interruption or completion
+        stop_pump(container_id)
 
 
-def can_water(container_id):
-    # Check if the container is in the cooldown period and return False if it is
-    if time() < watering_cooldown[container_id]:
-        return False
-    return log_pump_ml_added[container_id] < max_ml_per_container
+def watering_allowed_ml(container_id, add_ml_requested):
+    # Remove entries older than 24 hours
+    cutoff_time = datetime.now() - timedelta(days=1)
+    log_pump_ml_added[container_id] = [
+        entry for entry in log_pump_ml_added[container_id]
+        if datetime.fromisoformat(entry["time"]) > cutoff_time
+    ]
+
+    # Calculate total ml added in the last 24 hours
+    ml_added_last_24h = sum(entry["ml"]
+                            for entry in log_pump_ml_added[container_id])
+
+    # Determine how much water can be added
+    remaining_ml_allowed = max_ml_per_24h - ml_added_last_24h
+
+    # Return the allowed amount, capped at the remaining amount
+    return min(add_ml_requested, remaining_ml_allowed) if remaining_ml_allowed > 0 else 0
 
 
 def log_and_upload(cpu, log_pump_ml_added, Containers):
-    global log_previous_time
-    current_time = time()
-
-    # Log the data if enough time has passed
-    if current_time > log_previous_time + seconds_between_logs:
-        log_previous_time = current_time
+    try:
+        # Log data to file
         log_add_entry(Containers, cpu, local_filepath_log, log_pump_ml_added)
 
-    # Attempt to send data to the server
-    with upload_lock:
-        send_data_to_server(cpu, log_pump_ml_added, Containers)
-
-
-class PIDController:
-    def __init__(self, Kp, Ki, Kd):
-        self.Kp = Kp
-        self.Ki = Ki
-        self.Kd = Kd
-        self.previous_error = 0
-        self.integral = 0
-
-    def compute(self, setpoint, measurement):
-        error = setpoint - measurement
-        self.integral += error
-        derivative = error - self.previous_error
-        output = (self.Kp * error) + (self.Ki * self.integral) + \
-            (self.Kd * derivative)
-        self.previous_error = error
-        return output
+        # Attempt to send data to the server
+        with upload_lock:
+            send_data_to_server(cpu, log_pump_ml_added, Containers)
+    except Exception as e:
+        print(f"Error logging and uploading data: {e}")
 
 
 # Create an instance of the PID controller
-pid_controller = PIDController(Kp=1.0, Ki=0.1, Kd=0.05)
+# parameters set for a check every 60 seconds
+pid_controller = PID.PIDController(Kp=20.0, Ki=0.1, Kd=4000.0)
 
 
 def check_and_water(container_id):
     sensor_percent_wet = get_sensor_percent_wet(container_id)
-    target_percent_wet = target_threshold[container_id[0]]
+    target_percent_wet = target_threshold[container_id[0]]  # 'A' or 'B'
 
     # Use the PID controller to determine the amount of water to add
-    water_to_add = pid_controller.compute(
-        target_percent_wet, sensor_percent_wet)
+    ml_to_add = pid_controller.compute(target_percent_wet, sensor_percent_wet)
 
-    # Clamp the water amount to avoid exceeding limits
-    water_to_add = max(
-        0, min(water_to_add, max_ml_per_container - log_pump_ml_added[container_id]))
+    # Calculate the allowed water based on 24-hour limit
+    ml_to_add = watering_allowed_ml(container_id, ml_to_add)
 
-    if can_water(container_id) and water_to_add > 0:
+    if ml_to_add > 0:
+        global log_pump_ml_added
+        # Log ml added with timestamp
+        current_time = datetime.now()
+        log_pump_ml_added[container_id].append(
+            {"time": current_time.isoformat(), "ml": ml_to_add})
+        save_log_pump_ml_added()  # Save log of ml added
         print(
-            f"Container {container_id} ({sensor_percent_wet}) too dry - humidifying with {water_to_add:.2f} ml")
-        threading.Thread(target=humidify_slightly, args=(
-            container_id, water_to_add)).start()
+            f"Container {container_id} ({sensor_percent_wet:.2f}%) too dry - humidifying with {ml_to_add:.2f} ml")
+
+        # Create and track pump thread
+        pump_thread = threading.Thread(
+            target=add_ml_to_container, args=(container_id, ml_to_add))
+        pump_threads.append(pump_thread)
+        pump_thread.start()
+
     elif sensor_percent_wet > target_percent_wet + 0.03:
         print(
-            f"Container {container_id} ({sensor_percent_wet}) too wet - oops! waiting it out")
+            f"Container {container_id} ({sensor_percent_wet:.2f}%) too wet - waiting it out")
     else:
-        print(f"Container {container_id} ({sensor_percent_wet}) OK")
+        print(f"Container {container_id} ({sensor_percent_wet:.2f}%) OK")
 
 
 def main():
@@ -154,17 +148,15 @@ def main():
     if not os.path.isfile(local_filepath_log):
         log_initialize(Containers, local_filepath_log)
 
-    load_cooldown()  # Load cooldown data from file
     load_log_pump_ml_added()  # Load ml added data from file
 
     try:
         while True:
-            # Get current time
-            current_time = time()
-            current_seconds = int(current_time % 60)
+            current_time = datetime.now()
+            current_seconds = current_time.second
 
-            # Check if we're at the top of a 10-second interval (00, 10, 20, ...)
-            if current_seconds % 10 == 0:
+            # Check if we're at the top of the minute (00 second)
+            if current_seconds == 0:
                 print_enviro(cpu)
 
                 # Start logging and uploading data in a separate thread
@@ -172,17 +164,13 @@ def main():
                     cpu, log_pump_ml_added, Containers)).start()
 
                 for container_id in Containers:
-                    if container_id == "A1":
-                        continue
-
                     check_and_water(container_id)
 
-                # Sleep for 9 seconds to align with the next 10-second mark
-                # Sleep for 9 seconds to avoid checking multiple times within the same minute
-                sleep(9)
+                sleep_duration = 60 - datetime.now().second
+                sleep(sleep_duration)
             else:
-                # Sleep for the remaining time to the next 10-second interval
-                sleep(1)  # Check every second if we are not at the top of the minute
+                sleep(0.2)
+
     except KeyboardInterrupt:
         print("KeyboardInterrupt caught. Exiting...")
     except SystemExit:
@@ -190,9 +178,16 @@ def main():
 
 
 def cleanup():
-    save_cooldown()  # Save cooldown data before exiting
+    print("Performing cleanup...")
     save_log_pump_ml_added()  # Save ml added data before exiting
+
+    # Stop all pump threads gracefully
+    pump_thread_stop_event.set()
+    for thread in pump_threads:
+        thread.join()
+
     stop_all_pumps()
+    print("Cleanup complete.")
 
 
 # Register the cleanup function with atexit
@@ -200,9 +195,9 @@ atexit.register(cleanup)
 
 
 def signal_handler(sig, frame):
-    print("Signal received:", sig)
+    print(f"Signal received: {sig}")
     cleanup()
-    sys.exit(0)  # Exit the program
+    sys.exit(0)
 
 
 # Register the signal handler for termination signals

@@ -24,8 +24,18 @@ SensorCalibration = {"dry": {"A1": 0.911, "A2": 0.747,
 print("Sensors initialized")
 
 
-def get_raw_sensor_value(sensor_id):
+def get_one_raw_sensor_value(sensor_id):
     return round(adc.read_voltage(Sensors[sensor_id]), 4)
+
+
+def get_raw_sensor_value(sensor_id):
+    total = 0
+    num_samples = 10
+    # Take 10 readings
+    for _ in range(num_samples):
+        total += get_one_raw_sensor_value(sensor_id)
+    # Return the average
+    return round(total / num_samples, 4)
 
 
 def get_sensor_percent_wet(container_id):
