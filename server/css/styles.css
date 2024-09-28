@@ -32,6 +32,7 @@ h1 {
 #sensor-charts {
   display: grid;
   grid-template-columns: repeat(3, 1fr); /* 3 columns */
+  grid-template-rows: repeat(1, auto); /* 1 row */
   gap: 20px; /* Adjust gap between charts */
 }
 

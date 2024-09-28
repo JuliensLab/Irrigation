@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring Dashboard</title>
+    <link rel="icon" type="image/png" href="favico.png">
+    <link rel="stylesheet" href="css/styles.css?v=1.0.3">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="scripts/chartGenerator.js?v=1.0.17"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon/build/luxon.min.js"></script>
+
+    <script>
+
+        let sensorData;
+        let containerDataArray;
+
+        // Function to fetch the latest data and update charts
+        function refreshData() {
+
+            fetch('https://irrigationmars.com/api/get_data.php')
+                .then(response => response.json())
+                .then(data => {
+                    sensorData = data.sensorData;
+                    containerDataArray = data.containerData;
+
+                    const scrollPosition = window.scrollY;
+
+                    // Update the sensor charts
+                    updateSensorCharts();
+
+                    // Update the container charts
+                    updateContainerCharts();
+
+                    window.scrollTo(0, scrollPosition);
+                    const interval = setInterval(function () { window.scrollTo(0, scrollPosition) }, 10);
+                    setTimeout(function () { clearInterval(interval) }, 100);
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                });
+        }
+        // Refresh the data every 30 seconds
+        setInterval(refreshData, 30000);
+    </script>
+</head>
+
+<body>
+
+    <h3 id="datetime"></h3>
+    <!-- <h1>Monitoring Dashboard</h1>
+
+    <h2>Container Charts</h2> -->
+
+    <label><input type="checkbox" id="humidityToggle" checked>Humidity as %</label>
+    <div id="container-charts"></div>
+
+    <h2>Environment</h2>
+    <div id="sensor-charts"></div>
+
+
+
+
+    <script>
+        function convertUTCToLocal(utcDateTime) {
+            // Create a Date object from the UTC date-time string
+            const date = new Date(utcDateTime + " UTC");
+
+            // Get local date and time components
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+
+            // Return the date-time string in the original format: YYYY-MM-DD HH:MM:SS
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+
+        function timeAgo(latest_datetime) {
+            // Get the current time
+            const now = new Date();
+
+            // Convert latest_datetime to a Date object
+            const latestDate = new Date(latest_datetime + " UTC");
+
+            // Calculate the time difference in milliseconds
+            const diffMs = now - latestDate;
+
+            // Convert difference to seconds, minutes, hours, days
+            const diffSeconds = Math.floor(diffMs / 1000);
+            const diffMinutes = Math.floor(diffSeconds / 60);
+            const diffHours = Math.floor(diffMinutes / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            // Return the appropriate time difference string
+            if (diffSeconds < 60) {
+                return `${diffSeconds}s ago`; // Less than a minute ago
+            } else if (diffMinutes < 60) {
+                const seconds = diffSeconds % 60;
+                return `${diffMinutes}m${seconds}s ago`; // Less than an hour ago
+            } else if (diffHours < 24) {
+                const minutes = diffMinutes % 60;
+                return `${diffHours}h${minutes}m ago`; // Less than a day ago
+            } else {
+                return `>1d ago`; // More than a day ago
+            }
+        }
+
+        let latest_datetime_utc = null
+        function updateTime() {
+            if (latest_datetime_utc)
+                document.getElementById('datetime').innerHTML = `${convertUTCToLocal(latest_datetime_utc)} | ${timeAgo(latest_datetime_utc)}`
+        }
+        setInterval(updateTime, 1000)
+
+        function updateSensorCharts() {
+            if (sensorData.length == 0) return
+
+            sensorData.sort((a, b) => a.id - b.id);
+            latest_datetime_utc = sensorData[sensorData.length - 1].date_time
+
+            sensorData.forEach((data, index) => {
+                // Replace each UTC date_time with the local equivalent
+                sensorData[index].date_time = convertUTCToLocal(data.date_time);
+            });
+
+
+            // Extract data for temperatures, humidity, and pressure// Sort sensorData by 'id'
+            const cpuTemps = sensorData.map(sensor => sensor.cpu_temp);
+            const roomTempsSHT40 = sensorData.map(sensor => sensor.room_temp_SHT40);
+            const roomTempsBMP280 = sensorData.map(sensor => sensor.room_temp_BMP280);
+            const roomHumiditySHT40 = sensorData.map(sensor => sensor.room_humidity_SHT40);
+            const roomPressureBMP280 = sensorData.map(sensor => sensor.room_pressure_BMP280);
+            const labels = sensorData.map(sensor => sensor.date_time.slice(11)); // Extract time from 'YYYY-MM-DD HH:MM:SS'
+
+
+            // Create a dataset for the temperatures
+            const temperatureData = [{
+                label: 'CPU °C ',
+                data: cpuTemps,
+                borderColor: 'rgba(255, 99, 132, 1)', // Red
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            },
+            {
+                label: 'Room Temp °C (SHT40)',
+                data: roomTempsSHT40,
+                borderColor: 'rgba(54, 162, 235, 1)', // Blue
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            },
+            {
+                label: 'Room Temp °C  (BMP280)',
+                data: roomTempsBMP280,
+                borderColor: 'rgba(75, 192, 192, 1)', // Teal
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            },
+            ];
+
+            // Create charts for humidity and pressure
+            const humidityData = [{
+                label: 'Room Humidity % (SHT40)',
+                data: roomHumiditySHT40,
+                borderColor: 'rgba(255, 206, 86, 1)', // Yellow
+                backgroundColor: 'rgba(255, 206, 86, 0.2)',
+            },];
+
+            const pressureData = [{
+                label: 'Room Pressure hPa (BMP280)',
+                data: roomPressureBMP280,
+                borderColor: 'rgba(52, 235, 192, 1)', // Purple
+                backgroundColor: 'rgba(52, 235, 192, 0.2)',
+            },];
+
+            // Create the temperature chart container
+            const sensorChartsContainer = document.getElementById('sensor-charts');
+            sensorChartsContainer.innerHTML = ''
+
+            // Create temperature chart
+            const tempChartContainer = document.createElement('div');
+            tempChartContainer.classList.add('chart-container');
+            tempChartContainer.appendChild(generateChart(temperatureData, labels, 'Temperature °C', 'line', 0, null));
+            sensorChartsContainer.appendChild(tempChartContainer);
+
+            // Create humidity chart container
+            const humidityChartContainer = document.createElement('div');
+            humidityChartContainer.classList.add('chart-container');
+            humidityChartContainer.appendChild(generateChart(humidityData, labels, 'Humidity %', 'line', 0, 100));
+            sensorChartsContainer.appendChild(humidityChartContainer);
+
+            // Create pressure chart container
+            const pressureChartContainer = document.createElement('div');
+            pressureChartContainer.classList.add('chart-container');
+            pressureChartContainer.appendChild(generateChart(pressureData, labels, 'Pressure hPa', 'line', 980, 1040));
+            sensorChartsContainer.appendChild(pressureChartContainer);
+
+        }
+    </script>
+
+
+
+    <script>
+
+        // Function to generate and display charts based on the toggle state
+        // Function to generate and display charts based on the toggle state
+        function displayCharts() {
+
+            const containerChartsContainer = document.getElementById('container-charts');
+            const humidityToggle = document.getElementById('humidityToggle');
+
+            // Clear existing charts
+            containerChartsContainer.innerHTML = '';
+
+            for (let [container_id, container_array] of Object.entries(organizedData)) {
+                // Create a container for the chart
+                const chartContainer = document.createElement('div');
+                chartContainer.classList.add('chart-container'); // Keep this to apply styles
+
+                // Get the latest humidity % value if toggled for percentage display
+                const latestHumidity = container_array[container_array.length - 1].humidity_pct // Latest humidity %
+
+                // Create a title for each container with the latest humidity value
+                const title = document.createElement('h3');
+                title.innerText = `${container_id} - Soil humidity: ${(parseFloat(latestHumidity) * 100).toFixed(1)}%`;
+                chartContainer.appendChild(title);
+
+                // Get humidity data based on toggle state
+                const humidityData = humidityToggle.checked ?
+                    container_array.map(container => container.humidity_pct * 100) :
+                    container_array.map(container => container.humidity_raw);
+
+                const pumpMLAddedData = container_array.map(container => container.pump_ml_added);
+
+                // Prepare containerLabels with time portion of date_time from sensorData
+                const containerLabels = container_array.map(container => {
+                    const matchingSensor = sensorData.find(sensor => sensor.id === container.short_term_sensor_data_id);
+                    return matchingSensor ? matchingSensor.date_time.slice(11) : null; // Extract time portion or return null if not found
+                }).filter(dateTime => dateTime !== null); // Filter out any null values if no matching sensor was found
+
+                // Create humidity chart based on the selected data type
+                const humidityChart = {
+                    label: humidityToggle.checked ? 'Humidity %' : 'Humidity Raw',
+                    data: humidityData,
+                    borderColor: humidityToggle.checked ? 'rgba(255, 206, 86, 1)' : 'rgba(75, 192, 192, 1)',
+                    backgroundColor: humidityToggle.checked ? 'rgba(255, 206, 86, 0.2)' : 'rgba(75, 192, 192, 0.2)',
+                };
+
+                // Create and append the humidity chart
+                chartContainer.appendChild(generateChart([humidityChart], containerLabels, humidityToggle.checked ? 'Humidity %' : 'Humidity Raw', 'line', 0, humidityToggle.checked ? 100 : null));
+
+                // Create and append the Pump ML Added chart with default options
+                chartContainer.appendChild(generateChart([{
+                    label: 'Pump ml added',
+                    data: pumpMLAddedData,
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                }], containerLabels, 'Pump ml added', 'line', 0, 1000));
+
+                // Append the chart container to the main charts container
+                containerChartsContainer.appendChild(chartContainer);
+            }
+        }
+
+        const organizedData = {};
+
+        function updateContainerCharts() {
+
+            // Step 1: Organize data by container_id
+
+            containerDataArray.forEach(item => {
+                const {
+                    container_id,
+                    ...rest
+                } = item; // Destructure to separate container_id
+
+                // Initialize array for the container_id if it doesn't exist
+                if (!organizedData[container_id]) {
+                    organizedData[container_id] = [];
+                }
+
+                // Push the remaining data into the appropriate array
+                organizedData[container_id].push(rest);
+            });
+
+            // Step 2: Sort each array by short_term_sensor_data_id
+            for (const containerId in organizedData) {
+                organizedData[containerId].sort((a, b) => {
+                    return a.short_term_sensor_data_id.localeCompare(b.short_term_sensor_data_id);
+                });
+            }
+
+
+            // Initial display of charts
+            displayCharts();
+        }
+
+
+        // Event listener for the toggle
+        humidityToggle.addEventListener('change', displayCharts);
+
+        // Initial data fetch
+        refreshData();
+    </script>
+
+</body>
+
+</html>

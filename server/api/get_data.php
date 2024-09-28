@@ -23,7 +23,7 @@ if ($conn->connect_error) {
 }
 
 // Fetch short-term sensor data
-$sensorDataQuery = "SELECT * FROM short_term_sensor_data ORDER BY date_time DESC LIMIT 100";
+$sensorDataQuery = "SELECT * FROM short_term_sensor_data ORDER BY date_time DESC LIMIT 10000";
 $sensorDataResult = $conn->query($sensorDataQuery);
 
 $sensorData = [];
