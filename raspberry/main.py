@@ -1,7 +1,7 @@
 import PID
 import json
 from CapacitiveSoilSensor import get_sensor_percent_wet
-from Pump import start_pump, stop_pump, stop_all_pumps, seconds_for_pump
+from Pump import start_pump, stop_pump, stop_all_pumps, seconds_for_pump, seconds_to_ml
 from log import log_initialize, log_add_entry
 from time import sleep, time
 from datetime import datetime, timedelta
@@ -61,6 +61,8 @@ def add_ml_to_container(container_id, ml_to_add):
     start_time = time()
     seconds_this_pump = seconds_for_pump(container_id, ml_to_add)
     start_pump(container_id)
+    print('thread for' + container_id + '+' + str(ml_to_add) +
+          'ml (' + str(seconds_this_pump) + 'sec')
 
     try:
         # Wait for the pump to finish or until stop event is set
@@ -120,12 +122,18 @@ def check_and_water(container_id):
         print(f"Container {container_id} ({sensor_percent_wet * 100:.1f}%) OK")
     else:
         # Use the PID controller to determine the amount of water to add
-        ml_to_add = round(pid_controller.compute(
+        ml_to_add_PID = round(pid_controller.compute(
             target_percent_wet, sensor_percent_wet))
-        print(container_id, sensor_percent_wet, target_percent_wet, ml_to_add)
 
         # Calculate the allowed water based on 24-hour limit
-        ml_to_add = watering_allowed_ml(container_id, ml_to_add)
+        ml_to_add_allowed = watering_allowed_ml(container_id, ml_to_add_PID)
+
+        # Limit to 40 seconds to have enough time until next check
+        max_ml_within_loop_cycle = seconds_to_ml(container_id, 40)
+        ml_to_add = min(ml_to_add_allowed, max_ml_within_loop_cycle)
+
+        print(container_id, sensor_percent_wet, target_percent_wet,
+              max_ml_within_loop_cycle, ml_to_add_PID, ml_to_add_allowed, ml_to_add)
 
         if ml_to_add > 0:
             global log_pump_ml_added
