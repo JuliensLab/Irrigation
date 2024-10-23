@@ -1,3 +1,4 @@
+from datetime import timedelta
 import PID
 import json
 from CapacitiveSoilSensor import get_sensor_percent_wet
@@ -75,84 +76,78 @@ def add_ml_to_container(container_id, ml_to_add):
         stop_pump(container_id)
 
 
-def watering_allowed_ml(container_id, add_ml_requested):
-    # Remove entries older than 24 hours
-    cutoff_time = datetime.now() - timedelta(days=1)
-    log_pump_ml_added[container_id] = [
-        entry for entry in log_pump_ml_added[container_id]
-        if datetime.fromisoformat(entry["time"]) > cutoff_time
-    ]
+# Update watering thresholds
+max_ml_per_12h = 500
+max_ml_per_6h = 300
+max_ml_per_3h = 200
 
-    # Calculate total ml added in the last 24 hours
-    ml_added_last_24h = sum(entry["ml"]
-                            for entry in log_pump_ml_added[container_id])
 
-    # Determine how much water can be added
-    remaining_ml_allowed = max_ml_per_24h - ml_added_last_24h
+def watering_allowed_ml_time_based(container_id, add_ml_requested):
+    # Remove entries older than 12, 6, and 3 hours
+    cutoff_time_12h = datetime.now() - timedelta(hours=12)
+    cutoff_time_6h = datetime.now() - timedelta(hours=6)
+    cutoff_time_3h = datetime.now() - timedelta(hours=3)
+
+    # Calculate total ml added in each time period
+    ml_added_last_12h = sum(entry["ml"]
+                            for entry in log_pump_ml_added[container_id]
+                            if datetime.fromisoformat(entry["time"]) > cutoff_time_12h)
+
+    ml_added_last_6h = sum(entry["ml"]
+                           for entry in log_pump_ml_added[container_id]
+                           if datetime.fromisoformat(entry["time"]) > cutoff_time_6h)
+
+    ml_added_last_3h = sum(entry["ml"]
+                           for entry in log_pump_ml_added[container_id]
+                           if datetime.fromisoformat(entry["time"]) > cutoff_time_3h)
+
+    # Determine the allowed amount based on the smallest restriction window
+    remaining_ml_12h = max_ml_per_12h - ml_added_last_12h
+    remaining_ml_6h = max_ml_per_6h - ml_added_last_6h
+    remaining_ml_3h = max_ml_per_3h - ml_added_last_3h
+
+    remaining_ml_allowed = min(
+        remaining_ml_12h, remaining_ml_6h, remaining_ml_3h)
 
     # Return the allowed amount, capped at the remaining amount
     return min(add_ml_requested, remaining_ml_allowed) if remaining_ml_allowed > 0 else 0
-
-
-def log_and_upload(cpu, log_pump_ml_added, Containers):
-    # try:
-    # Log data to file
-    log_add_entry(Containers, cpu, local_filepath_log, log_pump_ml_added)
-
-    # Attempt to send data to the server
-    with upload_lock:
-        send_data_to_server(cpu, log_pump_ml_added, Containers)
-    # except Exception as e:
-    #     print(f"Error logging and uploading data: {e}")
-
-
-# Create an instance of the PID controller
-# parameters set for a check every 60 seconds
-pid_controller = PID.PIDController(Kp=5.0, Ki=0.05, Kd=2000.0)
 
 
 def check_and_water(container_id):
     sensor_percent_wet = get_sensor_percent_wet(container_id)
     target_percent_wet = target_threshold[container_id[0]]  # 'A' or 'B'
 
-    if sensor_percent_wet > target_percent_wet + 0.03:
-        print(
-            f"Container {container_id} ({sensor_percent_wet * 100:.1f}%) too wet - waiting it out")
-    elif sensor_percent_wet > target_percent_wet:
+    if sensor_percent_wet >= target_percent_wet:
         print(f"Container {container_id} ({sensor_percent_wet * 100:.1f}%) OK")
     else:
-        # Use the PID controller to determine the amount of water to add
-        ml_to_add_PID = round(pid_controller.compute(
-            target_percent_wet, sensor_percent_wet))
+        # Calculate the amount of water to add based on humidity difference
+        ml_to_add = round((target_percent_wet - sensor_percent_wet) * 10)
 
-        # Calculate the allowed water based on 24-hour limit
-        ml_to_add_allowed = watering_allowed_ml(container_id, ml_to_add_PID)
+        # Calculate the allowed water based on time-based limits
+        ml_to_add_allowed = watering_allowed_ml_time_based(
+            container_id, ml_to_add)
 
-        # Limit to 40 seconds to have enough time until next check
-        max_ml_within_loop_cycle = seconds_to_ml(container_id, 40)
-        ml_to_add = min(ml_to_add_allowed, max_ml_within_loop_cycle)
+        print(container_id, sensor_percent_wet,
+              target_percent_wet, ml_to_add, ml_to_add_allowed)
 
-        print(container_id, sensor_percent_wet, target_percent_wet,
-              max_ml_within_loop_cycle, ml_to_add_PID, ml_to_add_allowed, ml_to_add)
-
-        if ml_to_add > 0:
+        if ml_to_add_allowed > 0:
             global log_pump_ml_added
             # Log ml added with timestamp
             current_time = datetime.now()
             log_pump_ml_added[container_id].append(
-                {"time": current_time.isoformat(), "ml": ml_to_add})
+                {"time": current_time.isoformat(), "ml": ml_to_add_allowed})
             save_log_pump_ml_added()  # Save log of ml added
             print(
-                f"Container {container_id} ({sensor_percent_wet * 100:.1f}%) too dry - humidifying with {ml_to_add:.0f} ml (PID)")
+                f"Container {container_id} ({sensor_percent_wet * 100:.1f}%) too dry - humidifying with {ml_to_add_allowed:.0f} ml (Time-based)")
 
             # Create and track pump thread
             pump_thread = threading.Thread(
-                target=add_ml_to_container, args=(container_id, ml_to_add))
+                target=add_ml_to_container, args=(container_id, ml_to_add_allowed))
             pump_threads.append(pump_thread)
             pump_thread.start()
         else:
             print(
-                f"Container {container_id} ({sensor_percent_wet * 100:.1f}%) no watering needed at this time (PID)")
+                f"Container {container_id} ({sensor_percent_wet * 100:.1f}%) no watering needed at this time (Time-based)")
 
 
 def main():
@@ -173,11 +168,15 @@ def main():
                 print_enviro(cpu)
 
                 # Start logging and uploading data in a separate thread
-                threading.Thread(target=log_and_upload, args=(
-                    cpu, log_pump_ml_added, Containers)).start()
+                threading.Thread(target=log_add_entry, args=(
+                    Containers, cpu, local_filepath_log, log_pump_ml_added)).start()
 
                 for container_id in Containers:
                     check_and_water(container_id)
+
+                # Send the data to the server
+                threading.Thread(target=send_data_to_server, args=(
+                    cpu, log_pump_ml_added, Containers)).start()
 
                 sleep_duration = 60 - datetime.now().second
                 sleep(sleep_duration)
