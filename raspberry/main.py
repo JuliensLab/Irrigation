@@ -77,37 +77,34 @@ def add_ml_to_container(container_id, ml_to_add):
 
 
 # Update watering thresholds
-max_ml_per_12h = 500
-max_ml_per_6h = 300
-max_ml_per_3h = 200
+watering_thresholds = {
+    12: 800,  # max ml per 12 hours
+    6: 600,   # max ml per 6 hours
+    3: 450,    # max ml per 3 hours
+    1: 200    # max ml per 1 hours
+}
 
 
 def watering_allowed_ml_time_based(container_id, add_ml_requested):
-    # Remove entries older than 12, 6, and 3 hours
-    cutoff_time_12h = datetime.now() - timedelta(hours=12)
-    cutoff_time_6h = datetime.now() - timedelta(hours=6)
-    cutoff_time_3h = datetime.now() - timedelta(hours=3)
+    current_time = datetime.now()
 
-    # Calculate total ml added in each time period
-    ml_added_last_12h = sum(entry["ml"]
-                            for entry in log_pump_ml_added[container_id]
-                            if datetime.fromisoformat(entry["time"]) > cutoff_time_12h)
+    # Iterate over all thresholds to compute remaining ml for each time window
+    remaining_ml_allowed = float('inf')  # Start with no restriction (infinite)
 
-    ml_added_last_6h = sum(entry["ml"]
-                           for entry in log_pump_ml_added[container_id]
-                           if datetime.fromisoformat(entry["time"]) > cutoff_time_6h)
+    for hours, max_ml in watering_thresholds.items():
+        cutoff_time = current_time - timedelta(hours=hours)
 
-    ml_added_last_3h = sum(entry["ml"]
-                           for entry in log_pump_ml_added[container_id]
-                           if datetime.fromisoformat(entry["time"]) > cutoff_time_3h)
+        # Calculate total ml added within this time window
+        ml_added_in_window = sum(entry["ml"]
+                                 for entry in log_pump_ml_added[container_id]
+                                 if datetime.fromisoformat(entry["time"]) > cutoff_time)
 
-    # Determine the allowed amount based on the smallest restriction window
-    remaining_ml_12h = max_ml_per_12h - ml_added_last_12h
-    remaining_ml_6h = max_ml_per_6h - ml_added_last_6h
-    remaining_ml_3h = max_ml_per_3h - ml_added_last_3h
+        # Calculate remaining ml allowed for this time window
+        remaining_ml_in_window = max_ml - ml_added_in_window
 
-    remaining_ml_allowed = min(
-        remaining_ml_12h, remaining_ml_6h, remaining_ml_3h)
+        # Update the remaining ml allowed based on the most restrictive window
+        remaining_ml_allowed = min(
+            remaining_ml_allowed, remaining_ml_in_window)
 
     # Return the allowed amount, capped at the remaining amount
     return min(add_ml_requested, remaining_ml_allowed) if remaining_ml_allowed > 0 else 0
