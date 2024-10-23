@@ -167,26 +167,25 @@ def main():
             if current_seconds == 0:
                 print_enviro(cpu)
 
-                sensor_values = {container_id: {'raw': None, 'pct': None}
-                                 for container_id in Containers}
-                for container_id in Containers:
-                    sensor_values[container_id]['raw'] = get_raw_sensor_value(
-                        container_id)
-                    sensor_values[container_id]['pct'] = get_calibrated_value(
-                        container_id, sensor_values[container_id]['raw'])
+                values = {c_id: {'raw': None, 'pct': None}
+                          for c_id in Containers}
+                for c_id in Containers:
+                    value = get_raw_sensor_value(c_id)
+                    values[c_id]['raw'] = value
+                    values[c_id]['pct'] = get_calibrated_value(c_id, value)
 
                 # Start logging and uploading data in a separate thread
                 threading.Thread(target=log_add_entry, args=(
-                    Containers, sensor_values, cpu, local_filepath_log, log_pump_ml_added)).start()
+                    Containers, values, cpu, local_filepath_log, log_pump_ml_added)).start()
 
                 for container_id in Containers:
-                    check_and_water(container_id, sensor_values)
+                    check_and_water(container_id, values)
 
                 # Send the data to the server
                 threading.Thread(target=send_data_to_server, args=(
-                    cpu, log_pump_ml_added, Containers)).start()
+                    values,  cpu, log_pump_ml_added, Containers)).start()
 
-                sleep_duration = 60 - datetime.now().second - 2
+                sleep_duration = 60 - datetime.now().second - 1
                 sleep(sleep_duration)
             else:
                 sleep(0.2)

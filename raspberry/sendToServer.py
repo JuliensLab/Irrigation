@@ -12,7 +12,7 @@ api = {"url": 'https://irrigationmars.com/api/api_store_short_term_data.php',
        "key": 'hiufew8GQRYHW%W651#!!&79uojjbho89gRWpio'}
 
 
-def send_data_to_server(cpu, log_pump_ml_added, Containers):
+def send_data_to_server(values, cpu, log_pump_ml_added, Containers):
     global api
     cpuTempC = round(cpu.temperature, 1)
     roomTempC_SHT40, roomHumiditySHT40 = getTemperatureHumiditySHT40()
@@ -31,17 +31,14 @@ def send_data_to_server(cpu, log_pump_ml_added, Containers):
     sensor_data = []
 
     for container_id in Containers:
-        raw_value = get_raw_sensor_value(container_id)
-        calibrated_value = get_calibrated_value(container_id, raw_value)
-
         # Calculate total pump ml added from log_pump_ml_added
         # Sum ml added entries
         pump_ml_added = sum(entry["ml"]
                             for entry in log_pump_ml_added[container_id])
         data = {
             'container_id': container_id,
-            'humidity_raw': raw_value,
-            'humidity_pct': calibrated_value,
+            'humidity_raw': values[container_id]['raw'],
+            'humidity_pct': values[container_id]['pct'],
             'pump_ml_added': pump_ml_added
         }
 
