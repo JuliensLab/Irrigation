@@ -178,7 +178,7 @@ def main():
                 threading.Thread(target=send_data_to_server, args=(
                     cpu, log_pump_ml_added, Containers)).start()
 
-                sleep_duration = 60 - datetime.now().second
+                sleep_duration = 60 - datetime.now().second - 2
                 sleep(sleep_duration)
             else:
                 sleep(0.2)
