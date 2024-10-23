@@ -1,7 +1,7 @@
 from datetime import timedelta
 import PID
 import json
-from CapacitiveSoilSensor import get_sensor_percent_wet
+from CapacitiveSoilSensor import get_raw_sensor_value, get_calibrated_value
 from Pump import start_pump, stop_pump, stop_all_pumps, seconds_for_pump, seconds_to_ml
 from log import log_initialize, log_add_entry
 from time import sleep, time
@@ -113,8 +113,8 @@ def watering_allowed_ml_time_based(container_id, add_ml_requested):
     return min(add_ml_requested, remaining_ml_allowed) if remaining_ml_allowed > 0 else 0
 
 
-def check_and_water(container_id):
-    sensor_percent_wet = get_sensor_percent_wet(container_id)
+def check_and_water(container_id, sensor_values):
+    sensor_percent_wet = sensor_values[container_id]['pct']
     target_percent_wet = target_threshold[container_id[0]]  # 'A' or 'B'
 
     if sensor_percent_wet >= target_percent_wet:
@@ -167,12 +167,20 @@ def main():
             if current_seconds == 0:
                 print_enviro(cpu)
 
+                sensor_values = {container_id: {'raw': None, 'pct': None}
+                                 for container_id in Containers}
+                for container_id in Containers:
+                    sensor_values[container_id]['raw'] = get_raw_sensor_value(
+                        container_id)
+                    sensor_values[container_id]['pct'] = get_calibrated_value(
+                        container_id, sensor_values[container_id]['raw'])
+
                 # Start logging and uploading data in a separate thread
                 threading.Thread(target=log_add_entry, args=(
-                    Containers, cpu, local_filepath_log, log_pump_ml_added)).start()
+                    Containers, sensor_values, cpu, local_filepath_log, log_pump_ml_added)).start()
 
                 for container_id in Containers:
-                    check_and_water(container_id)
+                    check_and_water(container_id, sensor_values)
 
                 # Send the data to the server
                 threading.Thread(target=send_data_to_server, args=(

@@ -22,7 +22,7 @@ def log_initialize(Containers, local_filepath_log):
     print("Log initialized")
 
 
-def log_add_entry(Containers, cpu, local_filepath_log, log_pump_ml_added):
+def log_add_entry(Containers, sensor_values, cpu, local_filepath_log, log_pump_ml_added):
     cpuTempC = round(cpu.temperature, 1)
     roomTempC_SHT40, roomHumiditySHT40 = getTemperatureHumiditySHT40()
     roomTempC_BMP280, roomPressureBMP280 = getTemperaturePressureBMP280()
@@ -47,17 +47,14 @@ def log_add_entry(Containers, cpu, local_filepath_log, log_pump_ml_added):
     sensor_data = []
 
     for container_id in Containers:
-        raw_value = get_raw_sensor_value(container_id)
-        calibrated_value = get_calibrated_value(container_id, raw_value)
-
         # Access the last entry in the log for pump_ml_added
         pump_ml_added_value = sum(
             entry["ml"] for entry in log_pump_ml_added[container_id]) if log_pump_ml_added[container_id] else 0
 
         # Append a dictionary with the sensor values to the list
         sensor_data.append({
-            'humidity_raw': str(raw_value),
-            'humidity_pct': str(calibrated_value),
+            'humidity_raw': str(sensor_values[container_id]['raw']),
+            'humidity_pct': str(sensor_values[container_id]['pct']),
             # Use the calculated value here
             'pump_ml_added': str(pump_ml_added_value)
         })
