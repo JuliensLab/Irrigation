@@ -1,10 +1,14 @@
 // scripts/chartManager.js
 
+// Object to store Chart instances
+const sensorCharts = {};
+const containerCharts = {};
+
 // Function: Update Sensor Charts
 function updateSensorCharts(sensorDataObject) {
   const { cpuTemps, roomTempsSHT40, roomTempsBMP280, roomHumiditySHT40, roomPressureBMP280, labels } = sensorDataObject;
 
-  // Temperature Data
+  // Define datasets
   const temperatureData = [
     {
       label: "CPU °C",
@@ -26,7 +30,6 @@ function updateSensorCharts(sensorDataObject) {
     },
   ];
 
-  // Humidity Data
   const humidityData = [
     {
       label: "Room Humidity % (SHT40)",
@@ -36,7 +39,6 @@ function updateSensorCharts(sensorDataObject) {
     },
   ];
 
-  // Pressure Data
   const pressureData = [
     {
       label: "Room Pressure hPa (BMP280)",
@@ -46,55 +48,146 @@ function updateSensorCharts(sensorDataObject) {
     },
   ];
 
-  // Get Sensor Charts Container
-  const sensorChartsContainer = document.getElementById("sensor-charts");
-  sensorChartsContainer.innerHTML = ""; // Clear existing charts
+  // Define chart configurations
+  const chartsConfig = [
+    {
+      containerId: "sensor-charts",
+      chartId: "temperatureChart",
+      datasets: temperatureData,
+      labels: labels,
+      chartTitle: "Temperature °C",
+      type: "line",
+      yLabel: "Temperature °C",
+      minY: 0,
+      maxY: null,
+    },
+    {
+      containerId: "sensor-charts",
+      chartId: "humidityChart",
+      datasets: humidityData,
+      labels: labels,
+      chartTitle: "Humidity %",
+      type: "line",
+      yLabel: "Humidity %",
+      minY: 30,
+      maxY: 50,
+    },
+    {
+      containerId: "sensor-charts",
+      chartId: "pressureChart",
+      datasets: pressureData,
+      labels: labels,
+      chartTitle: "Pressure hPa",
+      type: "line",
+      yLabel: "Pressure hPa",
+      minY: 980,
+      maxY: 1040,
+    },
+  ];
 
-  // Create Temperature Chart
-  const tempChartContainer = document.createElement("div");
-  tempChartContainer.classList.add("chart-container");
-  tempChartContainer.appendChild(generateChart(temperatureData, labels, "Temperature °C", "line", 0, null));
-  sensorChartsContainer.appendChild(tempChartContainer);
+  chartsConfig.forEach((config) => {
+    const { containerId, chartId, datasets, labels, chartTitle, type, minY, maxY } = config;
+    const container = document.getElementById(containerId);
 
-  // Create Humidity Chart
-  const humidityChartContainer = document.createElement("div");
-  humidityChartContainer.classList.add("chart-container");
-  humidityChartContainer.appendChild(generateChart(humidityData, labels, "Humidity %", "line", 30, 50));
-  sensorChartsContainer.appendChild(humidityChartContainer);
+    // If chart already exists, update its data
+    if (sensorCharts[chartId]) {
+      sensorCharts[chartId].data.labels = labels;
+      sensorCharts[chartId].data.datasets = datasets;
+      sensorCharts[chartId].options.scales.y.title.text = chartTitle;
+      if (minY !== null) {
+        sensorCharts[chartId].options.scales.y.suggestedMin = minY;
+      }
+      if (maxY !== null) {
+        sensorCharts[chartId].options.scales.y.suggestedMax = maxY;
+      }
+      sensorCharts[chartId].update();
+    } else {
+      // Create a new canvas element if it doesn't exist
+      let canvas = document.getElementById(chartId);
+      if (!canvas) {
+        canvas = document.createElement("canvas");
+        canvas.id = chartId;
+        canvas.classList.add("sensor-chart");
+        const div = document.createElement("div");
+        div.id = `sensor-chart-${chartId}`;
+        div.classList.add("chart-container");
+        div.appendChild(canvas);
+        container.appendChild(div);
+      }
 
-  // Create Pressure Chart
-  const pressureChartContainer = document.createElement("div");
-  pressureChartContainer.classList.add("chart-container");
-  pressureChartContainer.appendChild(generateChart(pressureData, labels, "Pressure hPa", "line", 980, 1040));
-  sensorChartsContainer.appendChild(pressureChartContainer);
+      // Initialize new Chart instance
+      sensorCharts[chartId] = new Chart(canvas.getContext("2d"), {
+        type: type,
+        data: {
+          labels: labels,
+          datasets: datasets,
+        },
+        options: {
+          responsive: true,
+          //   plugins: {
+          //     title: {
+          //       display: true,
+          //       text: chartTitle,
+          //     },
+          //   },
+          scales: {
+            y: {
+              beginAtZero: minY === null,
+              //   title: {
+              //     display: true,
+              //     text: chartTitle,
+              //   },
+              suggestedMin: minY !== null ? minY : undefined,
+              suggestedMax: maxY !== null ? maxY : undefined,
+            },
+          },
+          animation: {
+            duration: 0, // Disable animations for faster updates
+          },
+        },
+      });
+    }
+  });
 }
 
 // Function: Update Container Charts
 function updateContainerCharts(organizedData, sensorData) {
-  const containerChartsContainer = document.getElementById("container-charts");
   const humidityToggle = document.getElementById("humidityToggle");
   const cumulativeMlToggle = document.getElementById("cumulativeMlToggle");
 
-  // Clear Existing Charts
-  containerChartsContainer.innerHTML = "";
-
   for (let [container_id, container_array] of Object.entries(organizedData)) {
-    // Create Chart Container
-    const chartContainer = document.createElement("div");
-    chartContainer.classList.add("chart-container");
+    // Prepare chart identifiers
+    const humidityChartId = `humidityChart_${container_id}`;
+    const pumpMlChartId = `pumpMlChart_${container_id}`;
 
-    // Get Latest Humidity Percentage
-    const latestHumidity = container_array[container_array.length - 1].humidity_pct;
+    // Get or create chart containers
+    let chartContainer = document.getElementById(`container-chart-${container_id}`);
+    if (!chartContainer) {
+      chartContainer = document.createElement("div");
+      chartContainer.id = `container-chart-${container_id}`;
+      chartContainer.classList.add("chart-container");
 
-    // Create Title with Latest Humidity
-    const title = document.createElement("h3");
-    title.innerText = `${container_id} - Soil humidity: ${(parseFloat(latestHumidity) * 100).toFixed(1)}%`;
-    chartContainer.appendChild(title);
+      // Create and append title
+      const title = document.createElement("h3");
+      const latestHumidity = container_array[container_array.length - 1].humidity_pct;
+      title.innerText = `${container_id} - Soil humidity: ${(parseFloat(latestHumidity) * 100).toFixed(1)}%`;
+      chartContainer.appendChild(title);
+
+      // Append to main container
+      document.getElementById("container-charts").appendChild(chartContainer);
+    } else {
+      // Update title if it exists
+      const title = chartContainer.querySelector("h3");
+      if (title) {
+        const latestHumidity = container_array[container_array.length - 1].humidity_pct;
+        title.innerText = `${container_id} - Soil humidity: ${(parseFloat(latestHumidity) * 100).toFixed(1)}%`;
+      }
+    }
 
     // Determine Humidity Data Based on Toggle
     const humidityData = humidityToggle.checked
-      ? container_array.map((container) => container.humidity_pct * 100)
-      : container_array.map((container) => container.humidity_raw);
+      ? container_array.map((container) => container.humidity_raw)
+      : container_array.map((container) => container.humidity_pct * 100);
 
     const pumpMlData = cumulativeMlToggle.checked
       ? container_array.map((container) => container.pump_ml_cumul)
@@ -108,47 +201,122 @@ function updateContainerCharts(organizedData, sensorData) {
       })
       .filter((dateTime) => dateTime !== null); // Remove nulls
 
-    // Create Humidity Chart Data
-    const humidityChart = {
-      label: humidityToggle.checked ? "Humidity %" : "Humidity Raw",
+    // Define Humidity Chart Dataset
+    const humidityDataset = {
+      label: humidityToggle.checked ? "Humidity Raw" : "Humidity %",
       data: humidityData,
-      borderColor: humidityToggle.checked ? "rgba(255, 206, 86, 1)" : "rgba(75, 192, 192, 1)",
-      backgroundColor: humidityToggle.checked ? "rgba(255, 206, 86, 0.2)" : "rgba(75, 192, 192, 0.2)",
+      borderColor: humidityToggle.checked ? "rgba(75, 192, 192, 1)" : "rgba(255, 206, 86, 1)",
+      backgroundColor: humidityToggle.checked ? "rgba(75, 192, 192, 0.2)" : "rgba(255, 206, 86, 0.2)",
     };
 
-    // Create Pump ml Data Chart
-    const pumpMlChart = {
+    // Define Pump ml Dataset
+    const pumpMlDataset = {
       label: cumulativeMlToggle.checked ? "Pump ml cumulative" : "Pump ml added",
       data: pumpMlData,
       borderColor: cumulativeMlToggle.checked ? "rgba(153, 102, 255, 1)" : "rgba(255, 159, 64, 1)",
       backgroundColor: cumulativeMlToggle.checked ? "rgba(153, 102, 255, 0.2)" : "rgba(255, 159, 64, 0.2)",
     };
 
-    // Create and Append Humidity Chart
-    chartContainer.appendChild(
-      generateChart(
-        [humidityChart],
-        containerLabels,
-        humidityToggle.checked ? "Humidity %" : "Humidity Raw",
-        "line",
-        0,
-        humidityToggle.checked ? 100 : null
-      )
-    );
+    // Update or Create Humidity Chart
+    if (containerCharts[humidityChartId]) {
+      containerCharts[humidityChartId].data.labels = containerLabels;
+      containerCharts[humidityChartId].data.datasets = [humidityDataset];
+      containerCharts[humidityChartId].options.scales.y.title.text = humidityToggle.checked ? "Humidity Raw" : "Humidity %";
+      containerCharts[humidityChartId].options.scales.y.suggestedMin = humidityToggle.checked ? 0 : 0;
+      containerCharts[humidityChartId].options.scales.y.suggestedMax = humidityToggle.checked ? 1 : 100;
+      containerCharts[humidityChartId].update();
+    } else {
+      // Create a new canvas element if it doesn't exist
+      let humidityCanvas = document.getElementById(humidityChartId);
+      if (!humidityCanvas) {
+        humidityCanvas = document.createElement("canvas");
+        humidityCanvas.id = humidityChartId;
+        humidityCanvas.classList.add("container-humidity-chart");
+        chartContainer.appendChild(humidityCanvas);
+      }
 
-    // Create and Append Pump ml Chart
-    chartContainer.appendChild(
-      generateChart(
-        [pumpMlChart],
-        containerLabels,
-        cumulativeMlToggle.checked ? "Pump ml cumulative" : "Pump ml added",
-        "line",
-        0,
-        cumulativeMlToggle.checked ? null : 10 // Assuming 1000 as a reasonable max for pump_ml_added
-      )
-    );
+      // Initialize new Chart instance
+      containerCharts[humidityChartId] = new Chart(humidityCanvas.getContext("2d"), {
+        type: "line",
+        data: {
+          labels: containerLabels,
+          datasets: [humidityDataset],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            // title: {
+            //   display: true,
+            //   text: humidityToggle.checked ? "Humidity Raw": "Humidity %",
+            // },
+          },
+          scales: {
+            y: {
+              beginAtZero: humidityToggle.checked,
+              //   title: {
+              //     display: true,
+              //     text: humidityToggle.checked ? "Humidity Raw":"Humidity %" ,
+              //   },
+              suggestedMin: humidityToggle.checked ? undefined : 0,
+              suggestedMax: humidityToggle.checked ? undefined : 100,
+            },
+          },
+          animation: {
+            duration: 0, // Disable animations for faster updates
+          },
+        },
+      });
+    }
 
-    // Append Chart Container to Main Container
-    containerChartsContainer.appendChild(chartContainer);
+    // Update or Create Pump ML Chart
+    if (containerCharts[pumpMlChartId]) {
+      containerCharts[pumpMlChartId].data.labels = containerLabels;
+      containerCharts[pumpMlChartId].data.datasets = [pumpMlDataset];
+      containerCharts[pumpMlChartId].options.scales.y.title.text = cumulativeMlToggle.checked ? "Pump ml cumulative" : "Pump ml added";
+      containerCharts[pumpMlChartId].options.scales.y.suggestedMin = 0;
+      containerCharts[pumpMlChartId].options.scales.y.suggestedMax = cumulativeMlToggle.checked ? null : 10; // Adjust as needed
+      containerCharts[pumpMlChartId].update();
+    } else {
+      // Create a new canvas element if it doesn't exist
+      let pumpMlCanvas = document.getElementById(pumpMlChartId);
+      if (!pumpMlCanvas) {
+        pumpMlCanvas = document.createElement("canvas");
+        pumpMlCanvas.id = pumpMlChartId;
+        pumpMlCanvas.classList.add("container-pumpml-chart");
+        chartContainer.appendChild(pumpMlCanvas);
+      }
+
+      // Initialize new Chart instance
+      containerCharts[pumpMlChartId] = new Chart(pumpMlCanvas.getContext("2d"), {
+        type: "line",
+        data: {
+          labels: containerLabels,
+          datasets: [pumpMlDataset],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            // title: {
+            //   display: true,
+            //   text: cumulativeMlToggle.checked ? "Pump ml cumulative" : "Pump ml added",
+            // },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              //   title: {
+              //     display: true,
+              //     text: cumulativeMlToggle.checked ? "Pump ml cumulative" : "Pump ml added",
+              //   },
+              suggestedMin: cumulativeMlToggle.checked ? undefined : 0,
+              suggestedMax: cumulativeMlToggle.checked ? undefined : 10, // Adjust as needed
+            },
+          },
+          animation: {
+            duration: 0, // Disable animations for faster updates
+          },
+        },
+      });
+    }
   }
 }

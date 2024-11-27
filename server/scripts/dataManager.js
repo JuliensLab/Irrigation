@@ -83,7 +83,15 @@ function organizeContainerData() {
   }
 }
 
-// Function: Process Sensor Data and Update Charts
+// Function: Update Container Charts via chartManager.js
+function processContainerDataAndUpdateCharts() {
+  organizeContainerData();
+
+  // Update Container Charts via chartManager.js
+  updateContainerCharts(organizedData, sensorData);
+}
+
+// Function: Update Sensor Charts via chartManager.js
 function processSensorData() {
   if (sensorData.length === 0) return;
 
@@ -112,14 +120,6 @@ function processSensorData() {
   });
 }
 
-// Function: Process Container Data and Update Charts
-function processContainerDataAndUpdateCharts() {
-  organizeContainerData();
-
-  // Update Container Charts via chartManager.js
-  updateContainerCharts(organizedData, sensorData);
-}
-
 // Function: Process All Data and Update Charts
 function processDataAndUpdateCharts() {
   processSensorData();
@@ -127,6 +127,7 @@ function processDataAndUpdateCharts() {
 }
 
 // Function: Fetch Data from API and Refresh Charts
+const refreshMs = 30000;
 function refreshData() {
   if (refreshTimeout) clearTimeout(refreshTimeout);
 
@@ -144,22 +145,13 @@ function refreshData() {
       // Process and Update Charts
       processDataAndUpdateCharts();
 
-      // Maintain Scroll Position
-      window.scrollTo(0, scrollPosition);
-      const interval = setInterval(() => {
-        window.scrollTo(0, scrollPosition);
-      }, 10);
-      setTimeout(() => {
-        clearInterval(interval);
-      }, 100);
-
       // Schedule Next Refresh
-      refreshTimeout = setTimeout(refreshData, 30000);
+      refreshTimeout = setTimeout(refreshData, refreshMs);
     })
     .catch((error) => {
       console.error("Error fetching data:", error);
       // Schedule Next Refresh Even if There's an Error
-      refreshTimeout = setTimeout(refreshData, 30000);
+      refreshTimeout = setTimeout(refreshData, refreshMs);
     });
 }
 
