@@ -186,7 +186,7 @@ function updateContainerCharts(organizedData, sensorData) {
 
     // Determine Humidity Data Based on Toggle
     const humidityData = humidityToggle.checked
-      ? container_array.map((container) => container.humidity_raw)
+      ? container_array.map((container) => 1 - container.humidity_raw)
       : container_array.map((container) => container.humidity_pct * 100);
 
     const pumpMlData = cumulativeMlToggle.checked
@@ -203,7 +203,7 @@ function updateContainerCharts(organizedData, sensorData) {
 
     // Define Humidity Chart Dataset
     const humidityDataset = {
-      label: humidityToggle.checked ? "Humidity Raw" : "Humidity %",
+      label: humidityToggle.checked ? "1-Humidity Raw" : "Humidity %",
       data: humidityData,
       borderColor: humidityToggle.checked ? "rgba(75, 192, 192, 1)" : "rgba(255, 206, 86, 1)",
       backgroundColor: humidityToggle.checked ? "rgba(75, 192, 192, 0.2)" : "rgba(255, 206, 86, 0.2)",
@@ -221,10 +221,10 @@ function updateContainerCharts(organizedData, sensorData) {
     if (containerCharts[humidityChartId]) {
       containerCharts[humidityChartId].data.labels = containerLabels;
       containerCharts[humidityChartId].data.datasets = [humidityDataset];
-      containerCharts[humidityChartId].options.scales.y.title.text = humidityToggle.checked ? "Humidity Raw" : "Humidity %";
-      containerCharts[humidityChartId].options.scales.y.suggestedMin = humidityToggle.checked ? 0 : 0;
-      containerCharts[humidityChartId].options.scales.y.suggestedMax = humidityToggle.checked ? 1 : 100;
-      containerCharts[humidityChartId].update();
+      //   containerCharts[humidityChartId].options.scales.y.title.text = humidityToggle.checked ? "Humidity Raw" : "Humidity %";
+      (containerCharts[humidityChartId].options.scales.y.suggestedMin = humidityToggle.checked ? undefined : 0),
+        (containerCharts[humidityChartId].options.scales.y.suggestedMax = humidityToggle.checked ? undefined : 100),
+        containerCharts[humidityChartId].update();
     } else {
       // Create a new canvas element if it doesn't exist
       let humidityCanvas = document.getElementById(humidityChartId);
@@ -272,9 +272,9 @@ function updateContainerCharts(organizedData, sensorData) {
     if (containerCharts[pumpMlChartId]) {
       containerCharts[pumpMlChartId].data.labels = containerLabels;
       containerCharts[pumpMlChartId].data.datasets = [pumpMlDataset];
-      containerCharts[pumpMlChartId].options.scales.y.title.text = cumulativeMlToggle.checked ? "Pump ml cumulative" : "Pump ml added";
-      containerCharts[pumpMlChartId].options.scales.y.suggestedMin = 0;
-      containerCharts[pumpMlChartId].options.scales.y.suggestedMax = cumulativeMlToggle.checked ? null : 10; // Adjust as needed
+      //   containerCharts[pumpMlChartId].options.scales.y.title.text = cumulativeMlToggle.checked ? "Pump ml cumulative" : "Pump ml added";
+      (containerCharts[pumpMlChartId].options.scales.y.suggestedMin = cumulativeMlToggle.checked ? undefined : 0),
+        (containerCharts[pumpMlChartId].options.scales.y.suggestedMax = cumulativeMlToggle.checked ? undefined : 10); // Adjust as needed
       containerCharts[pumpMlChartId].update();
     } else {
       // Create a new canvas element if it doesn't exist
