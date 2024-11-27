@@ -61,6 +61,7 @@ function organizeContainerData() {
     if (!organizedData[container_id]) {
       organizedData[container_id] = [];
     }
+    // Initialize pump_ml_cumul with pump_ml_added
     rest.pump_ml_cumul = rest.pump_ml_added;
     organizedData[container_id].push(rest);
   });
@@ -70,12 +71,14 @@ function organizeContainerData() {
     organizedData[containerId].sort((a, b) => a.sensor_data_id - b.sensor_data_id);
   }
 
-  // convert cumul to added ml
+  // Convert cumulative to added ml
   for (const containerId in organizedData) {
     const array = organizedData[containerId];
-    array[0].pump_ml_added = null;
-    for (let i = 1; i < array.length; i++) {
-      array[i].pump_ml_added = array[i].pump_ml_cumul - array[i - 1].pump_ml_cumul;
+    if (array.length > 0) {
+      array[0].pump_ml_added = null; // First entry has no previous data to subtract
+      for (let i = 1; i < array.length; i++) {
+        array[i].pump_ml_added = array[i].pump_ml_cumul - array[i - 1].pump_ml_cumul;
+      }
     }
   }
 }
@@ -132,7 +135,6 @@ function refreshData() {
   fetch(apiUrl)
     .then((response) => response.json())
     .then((data) => {
-      console.log(data);
       sensorData = data.sensorData;
       containerDataArray = data.containerData;
       currentSource = data.source; // Update current source based on response
@@ -178,6 +180,13 @@ function initDataManager() {
   const humidityToggle = document.getElementById("humidityToggle");
   humidityToggle.addEventListener("change", function () {
     // Update Container Charts based on Humidity Toggle
+    updateContainerCharts(organizedData, sensorData);
+  });
+
+  // Event Listener: Cumulative ML Toggle
+  const cumulativeMlToggle = document.getElementById("cumulativeMlToggle");
+  cumulativeMlToggle.addEventListener("change", function () {
+    // Update Container Charts based on Cumulative ML Toggle
     updateContainerCharts(organizedData, sensorData);
   });
 

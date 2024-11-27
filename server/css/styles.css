@@ -51,6 +51,7 @@ h1 {
   border: 1px solid #ddd;
   border-radius: 5px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  min-height: 40%;
 }
 
 /* Styling for titles in chart containers */
@@ -59,3 +60,22 @@ h1 {
   margin-bottom: 10px;
   font-size: 1.2em;
 }
+
+/* styles.css */
+
+#data-source-toggle,
+#humidityToggle,
+#cumulativeMlToggle {
+  margin: 10px 0;
+}
+
+label {
+  margin-right: 15px;
+  font-family: Arial, sans-serif;
+}
+
+/* .chart-container {
+    width: 100%;
+    max-width: 600px;
+    margin: 20px auto;
+} */

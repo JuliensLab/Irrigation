@@ -11,6 +11,9 @@
     <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon/build/luxon.min.js"></script>
+
+    <!-- Chart Generator (Assumed to contain generateChart function) -->
+    <script src="scripts/chartGenerator.js?v=1.0.17"></script>
 </head>
 
 <body>
@@ -29,16 +32,18 @@
         </label>
     </div>
 
-    <label><input type="checkbox" id="humidityToggle" checked>Humidity as %</label>
+    <!-- New Toggle for Cumulative ML -->
+    <label><input type="checkbox" id="humidityToggle" checked>&nbsp;Humidity as %</label>
+    <label><input type="checkbox" id="cumulativeMlToggle">&nbsp;Cumulative ml</label>
+
     <div id="container-charts"></div>
 
     <h2>Environment</h2>
     <div id="sensor-charts"></div>
 
     <!-- External JavaScript Files -->
-    <script src="scripts/dataManager.js?v=1.0.18"></script>
-    <script src="scripts/chartManager.js?v=1.0.18"></script>
-    <script src="scripts/chartGenerator.js?v=1.0.18"></script>
+    <script src="scripts/dataManager.js"></script>
+    <script src="scripts/chartManager.js"></script>
 
 </body>
 

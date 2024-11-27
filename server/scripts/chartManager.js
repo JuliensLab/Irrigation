@@ -59,7 +59,7 @@ function updateSensorCharts(sensorDataObject) {
   // Create Humidity Chart
   const humidityChartContainer = document.createElement("div");
   humidityChartContainer.classList.add("chart-container");
-  humidityChartContainer.appendChild(generateChart(humidityData, labels, "Humidity %", "line", 0, 100));
+  humidityChartContainer.appendChild(generateChart(humidityData, labels, "Humidity %", "line", 30, 50));
   sensorChartsContainer.appendChild(humidityChartContainer);
 
   // Create Pressure Chart
@@ -73,6 +73,7 @@ function updateSensorCharts(sensorDataObject) {
 function updateContainerCharts(organizedData, sensorData) {
   const containerChartsContainer = document.getElementById("container-charts");
   const humidityToggle = document.getElementById("humidityToggle");
+  const cumulativeMlToggle = document.getElementById("cumulativeMlToggle");
 
   // Clear Existing Charts
   containerChartsContainer.innerHTML = "";
@@ -95,7 +96,9 @@ function updateContainerCharts(organizedData, sensorData) {
       ? container_array.map((container) => container.humidity_pct * 100)
       : container_array.map((container) => container.humidity_raw);
 
-    const pumpMLCumulData = container_array.map((container) => container.pump_ml_added);
+    const pumpMlData = cumulativeMlToggle.checked
+      ? container_array.map((container) => container.pump_ml_cumul)
+      : container_array.map((container) => container.pump_ml_added);
 
     // Prepare Labels by Matching sensor_data_id with sensorData
     const containerLabels = container_array
@@ -113,6 +116,14 @@ function updateContainerCharts(organizedData, sensorData) {
       backgroundColor: humidityToggle.checked ? "rgba(255, 206, 86, 0.2)" : "rgba(75, 192, 192, 0.2)",
     };
 
+    // Create Pump ml Data Chart
+    const pumpMlChart = {
+      label: cumulativeMlToggle.checked ? "Pump ml cumulative" : "Pump ml added",
+      data: pumpMlData,
+      borderColor: cumulativeMlToggle.checked ? "rgba(153, 102, 255, 1)" : "rgba(255, 159, 64, 1)",
+      backgroundColor: cumulativeMlToggle.checked ? "rgba(153, 102, 255, 0.2)" : "rgba(255, 159, 64, 0.2)",
+    };
+
     // Create and Append Humidity Chart
     chartContainer.appendChild(
       generateChart(
@@ -125,22 +136,15 @@ function updateContainerCharts(organizedData, sensorData) {
       )
     );
 
-    // Create and Append Pump ML Added Chart
+    // Create and Append Pump ml Chart
     chartContainer.appendChild(
       generateChart(
-        [
-          {
-            label: "Pump ml cumul",
-            data: pumpMLCumulData,
-            borderColor: "rgba(153, 102, 255, 1)",
-            backgroundColor: "rgba(153, 102, 255, 0.2)",
-          },
-        ],
+        [pumpMlChart],
         containerLabels,
-        "Pump ml cumul",
+        cumulativeMlToggle.checked ? "Pump ml cumulative" : "Pump ml added",
         "line",
         0,
-        1000
+        cumulativeMlToggle.checked ? null : 10 // Assuming 1000 as a reasonable max for pump_ml_added
       )
     );
 
