@@ -16,14 +16,19 @@ include('log.php');
 // Create database connection
 $conn = new mysqli($config['host'], $config['username'], $config['password'], $config['db_name']);
 
+
+// Determine the data source ('short' or 'long'), default to 'short'
+$source = isset($_GET['source']) && strtolower($_GET['source']) === 'long' ? 'long' : 'short';
+
+
 // Check connection
 if ($conn->connect_error) {
     log_message("Database connection failed: " . $conn->connect_error);
     die(json_encode(["error" => "Database connection failed: " . $conn->connect_error]));
 }
 
-// Fetch short-term sensor data
-$sensorDataQuery = "SELECT * FROM short_term_sensor_data ORDER BY date_time DESC LIMIT 10000";
+// Fetch sensor data
+$sensorDataQuery = "SELECT * FROM {$source}_term_sensor_data ORDER BY date_time DESC LIMIT 10000";
 $sensorDataResult = $conn->query($sensorDataQuery);
 
 $sensorData = [];
@@ -39,7 +44,7 @@ if ($sensorDataResult->num_rows > 0) {
 $containerData = [];
 if (!empty($sensorIds)) {
     $sensorIdList = implode(',', array_map('intval', $sensorIds));
-    $containerDataQuery = "SELECT * FROM short_term_container_data WHERE short_term_sensor_data_id IN ($sensorIdList)";
+    $containerDataQuery = "SELECT * FROM {$source}_term_container_data WHERE sensor_data_id IN ($sensorIdList)";
     $containerDataResult = $conn->query($containerDataQuery);
 
     if ($containerDataResult->num_rows > 0) {
@@ -51,6 +56,7 @@ if (!empty($sensorIds)) {
 
 // Return the data as JSON
 echo json_encode([
+    'source' => $source,
     'sensorData' => $sensorData,
     'containerData' => $containerData
 ]);
