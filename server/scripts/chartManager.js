@@ -209,9 +209,9 @@ function updateContainerCharts(organizedData, sensorData) {
       backgroundColor: humidityToggle.checked ? "rgba(75, 192, 192, 0.2)" : "rgba(255, 206, 86, 0.2)",
     };
 
-    // Define Pump ml Dataset
+    // Define Pump mL Dataset
     const pumpMlDataset = {
-      label: cumulativeMlToggle.checked ? "Pump ml cumulative" : "Pump ml added",
+      label: cumulativeMlToggle.checked ? "Pump mL cumulative" : "Pump mL added",
       data: pumpMlData,
       borderColor: cumulativeMlToggle.checked ? "rgba(153, 102, 255, 1)" : "rgba(255, 159, 64, 1)",
       backgroundColor: cumulativeMlToggle.checked ? "rgba(153, 102, 255, 0.2)" : "rgba(255, 159, 64, 0.2)",
@@ -272,7 +272,7 @@ function updateContainerCharts(organizedData, sensorData) {
     if (containerCharts[pumpMlChartId]) {
       containerCharts[pumpMlChartId].data.labels = containerLabels;
       containerCharts[pumpMlChartId].data.datasets = [pumpMlDataset];
-      //   containerCharts[pumpMlChartId].options.scales.y.title.text = cumulativeMlToggle.checked ? "Pump ml cumulative" : "Pump ml added";
+      //   containerCharts[pumpMlChartId].options.scales.y.title.text = cumulativeMlToggle.checked ? "Pump mL cumulative" : "Pump mL added";
       (containerCharts[pumpMlChartId].options.scales.y.suggestedMin = cumulativeMlToggle.checked ? undefined : 0),
         (containerCharts[pumpMlChartId].options.scales.y.suggestedMax = cumulativeMlToggle.checked ? undefined : 10); // Adjust as needed
       containerCharts[pumpMlChartId].update();
@@ -298,7 +298,7 @@ function updateContainerCharts(organizedData, sensorData) {
           plugins: {
             // title: {
             //   display: true,
-            //   text: cumulativeMlToggle.checked ? "Pump ml cumulative" : "Pump ml added",
+            //   text: cumulativeMlToggle.checked ? "Pump mL cumulative" : "Pump mL added",
             // },
           },
           scales: {
@@ -306,7 +306,7 @@ function updateContainerCharts(organizedData, sensorData) {
               beginAtZero: true,
               //   title: {
               //     display: true,
-              //     text: cumulativeMlToggle.checked ? "Pump ml cumulative" : "Pump ml added",
+              //     text: cumulativeMlToggle.checked ? "Pump mL cumulative" : "Pump mL added",
               //   },
               suggestedMin: cumulativeMlToggle.checked ? undefined : 0,
               suggestedMax: cumulativeMlToggle.checked ? undefined : 10, // Adjust as needed
