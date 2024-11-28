@@ -155,6 +155,28 @@ function refreshData() {
     });
 }
 
+// Function: Show or Hide Container Humidity Charts
+function toggleHumidityCharts(display) {
+  for (let chartId in containerCharts) {
+    if (chartId.startsWith("humidityChart_")) {
+      const chart = document.getElementById(chartId);
+      if (display) chart.classList.remove("hidden");
+      else chart.classList.add("hidden");
+    }
+  }
+}
+
+// Function: Show or Hide Container Pump mL Charts
+function togglePumpCharts(display) {
+  for (let chartId in containerCharts) {
+    if (chartId.startsWith("pumpMlChart_")) {
+      const chart = document.getElementById(chartId);
+      if (display) chart.classList.remove("hidden");
+      else chart.classList.add("hidden");
+    }
+  }
+}
+
 // Function: Initialize Data Manager and Set Up Event Listeners
 function initDataManager() {
   // Event Listener: Data Source Toggle
@@ -181,6 +203,36 @@ function initDataManager() {
     // Update Container Charts based on Cumulative ML Toggle
     updateContainerCharts(organizedData, sensorData);
   });
+
+  // Event Listener: Display Humidity Chart Toggle
+  const displayHumidityChartToggle = document.getElementById("displayHumidityChart");
+  displayHumidityChartToggle.addEventListener("change", function () {
+    const isChecked = this.checked;
+    toggleHumidityCharts(isChecked);
+    localStorage.setItem("displayHumidityChart", isChecked);
+  });
+
+  // Event Listener: Display Pump Chart Toggle
+  const displayPumpChartToggle = document.getElementById("displayPumpChart");
+  displayPumpChartToggle.addEventListener("change", function () {
+    const isChecked = this.checked;
+    togglePumpCharts(isChecked);
+    localStorage.setItem("displayPumpChart", isChecked);
+  });
+
+  // Load Checkbox States from Local Storage
+  const storedDisplayHumidityChart = localStorage.getItem("displayHumidityChart");
+  const storedDisplayPumpChart = localStorage.getItem("displayPumpChart");
+
+  if (storedDisplayHumidityChart !== null) {
+    displayHumidityChartToggle.checked = storedDisplayHumidityChart === "true";
+    toggleHumidityCharts(displayHumidityChartToggle.checked);
+  }
+
+  if (storedDisplayPumpChart !== null) {
+    displayPumpChartToggle.checked = storedDisplayPumpChart === "true";
+    togglePumpCharts(displayPumpChartToggle.checked);
+  }
 
   // Initial Data Fetch
   refreshData();

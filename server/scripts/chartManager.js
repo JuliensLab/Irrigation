@@ -1,5 +1,15 @@
 // scripts/chartManager.js
 
+// Define target values based on container groups
+const targetValues = {
+  A1: 80,
+  A2: 80,
+  A3: 80,
+  B1: 40,
+  B2: 40,
+  B3: 40,
+};
+
 // Object to store Chart instances
 const sensorCharts = {};
 const containerCharts = {};
@@ -124,26 +134,14 @@ function updateSensorCharts(sensorDataObject) {
         },
         options: {
           responsive: true,
-          //   plugins: {
-          //     title: {
-          //       display: true,
-          //       text: chartTitle,
-          //     },
-          //   },
           scales: {
             y: {
               beginAtZero: minY === null,
-              //   title: {
-              //     display: true,
-              //     text: chartTitle,
-              //   },
               suggestedMin: minY !== null ? minY : undefined,
               suggestedMax: maxY !== null ? maxY : undefined,
             },
           },
-          animation: {
-            duration: 0, // Disable animations for faster updates
-          },
+          animation: false,
         },
       });
     }
@@ -207,24 +205,46 @@ function updateContainerCharts(organizedData, sensorData) {
       data: humidityData,
       borderColor: humidityToggle.checked ? "rgba(75, 192, 192, 1)" : "rgba(255, 206, 86, 1)",
       backgroundColor: humidityToggle.checked ? "rgba(75, 192, 192, 0.2)" : "rgba(255, 206, 86, 0.2)",
+      fill: false,
     };
 
-    // Define Pump mL Dataset
-    const pumpMlDataset = {
-      label: cumulativeMlToggle.checked ? "Pump mL cumulative" : "Pump mL added",
-      data: pumpMlData,
-      borderColor: cumulativeMlToggle.checked ? "rgba(153, 102, 255, 1)" : "rgba(255, 159, 64, 1)",
-      backgroundColor: cumulativeMlToggle.checked ? "rgba(153, 102, 255, 0.2)" : "rgba(255, 159, 64, 0.2)",
-    };
+    // Determine Target Value based on Container ID
+    const targetValue = targetValues[container_id];
+    let targetDataset = null;
+    if (targetValue !== undefined) {
+      targetDataset = {
+        label: "Target",
+        data: Array(containerLabels.length).fill(targetValue),
+        borderColor: "rgba(255, 99, 132, 1)", // Red color for target line
+        borderDash: [10, 5], // Dashed line
+        fill: false,
+        pointRadius: 0, // Hide data points
+        tension: 0, // Straight lines
+      };
+    }
+
+    // Combine datasets
+    const combinedHumidityDatasets = [humidityDataset];
+    if (targetDataset) {
+      combinedHumidityDatasets.push(targetDataset);
+    }
 
     // Update or Create Humidity Chart
     if (containerCharts[humidityChartId]) {
       containerCharts[humidityChartId].data.labels = containerLabels;
-      containerCharts[humidityChartId].data.datasets = [humidityDataset];
-      //   containerCharts[humidityChartId].options.scales.y.title.text = humidityToggle.checked ? "Humidity Raw" : "Humidity %";
-      (containerCharts[humidityChartId].options.scales.y.suggestedMin = humidityToggle.checked ? undefined : 0),
-        (containerCharts[humidityChartId].options.scales.y.suggestedMax = humidityToggle.checked ? undefined : 100),
-        containerCharts[humidityChartId].update();
+      containerCharts[humidityChartId].data.datasets = combinedHumidityDatasets;
+      containerCharts[humidityChartId].options.scales.y.title.text = humidityToggle.checked ? "Humidity Raw" : "Humidity %";
+
+      // Adjust Y-axis settings based on humidity toggle
+      if (humidityToggle.checked) {
+        containerCharts[humidityChartId].options.scales.y.suggestedMin = undefined;
+        containerCharts[humidityChartId].options.scales.y.suggestedMax = undefined;
+      } else {
+        containerCharts[humidityChartId].options.scales.y.suggestedMin = 0;
+        containerCharts[humidityChartId].options.scales.y.suggestedMax = 100;
+      }
+
+      containerCharts[humidityChartId].update();
     } else {
       // Create a new canvas element if it doesn't exist
       let humidityCanvas = document.getElementById(humidityChartId);
@@ -240,41 +260,52 @@ function updateContainerCharts(organizedData, sensorData) {
         type: "line",
         data: {
           labels: containerLabels,
-          datasets: [humidityDataset],
+          datasets: combinedHumidityDatasets,
         },
         options: {
           responsive: true,
-          plugins: {
-            // title: {
-            //   display: true,
-            //   text: humidityToggle.checked ? "Humidity Raw": "Humidity %",
-            // },
-          },
           scales: {
             y: {
               beginAtZero: humidityToggle.checked,
-              //   title: {
-              //     display: true,
-              //     text: humidityToggle.checked ? "Humidity Raw":"Humidity %" ,
-              //   },
               suggestedMin: humidityToggle.checked ? undefined : 0,
               suggestedMax: humidityToggle.checked ? undefined : 100,
+              title: {
+                display: true,
+                text: humidityToggle.checked ? "Humidity Raw" : "Humidity %",
+              },
             },
           },
-          animation: {
-            duration: 0, // Disable animations for faster updates
+          plugins: {
+            legend: {
+              display: true,
+            },
           },
+          animation: false,
         },
       });
     }
+
+    // Define Pump mL Dataset
+    const pumpMlDataset = {
+      label: cumulativeMlToggle.checked ? "Pump mL cumulative" : "Pump mL added",
+      data: pumpMlData,
+      borderColor: cumulativeMlToggle.checked ? "rgba(153, 102, 255, 1)" : "rgba(255, 159, 64, 1)",
+      backgroundColor: cumulativeMlToggle.checked ? "rgba(153, 102, 255, 0.2)" : "rgba(255, 159, 64, 0.2)",
+      fill: false,
+    };
 
     // Update or Create Pump ML Chart
     if (containerCharts[pumpMlChartId]) {
       containerCharts[pumpMlChartId].data.labels = containerLabels;
       containerCharts[pumpMlChartId].data.datasets = [pumpMlDataset];
-      //   containerCharts[pumpMlChartId].options.scales.y.title.text = cumulativeMlToggle.checked ? "Pump mL cumulative" : "Pump mL added";
-      (containerCharts[pumpMlChartId].options.scales.y.suggestedMin = cumulativeMlToggle.checked ? undefined : 0),
-        (containerCharts[pumpMlChartId].options.scales.y.suggestedMax = cumulativeMlToggle.checked ? undefined : 10); // Adjust as needed
+      containerCharts[pumpMlChartId].options.scales.y.title.text = cumulativeMlToggle.checked ? "Pump mL cumulative" : "Pump mL added";
+      if (cumulativeMlToggle.checked) {
+        containerCharts[pumpMlChartId].options.scales.y.suggestedMin = undefined;
+        containerCharts[pumpMlChartId].options.scales.y.suggestedMax = undefined;
+      } else {
+        containerCharts[pumpMlChartId].options.scales.y.suggestedMin = 0;
+        containerCharts[pumpMlChartId].options.scales.y.suggestedMax = 10; // Adjust as needed
+      }
       containerCharts[pumpMlChartId].update();
     } else {
       // Create a new canvas element if it doesn't exist
@@ -295,28 +326,39 @@ function updateContainerCharts(organizedData, sensorData) {
         },
         options: {
           responsive: true,
-          plugins: {
-            // title: {
-            //   display: true,
-            //   text: cumulativeMlToggle.checked ? "Pump mL cumulative" : "Pump mL added",
-            // },
-          },
           scales: {
             y: {
               beginAtZero: true,
-              //   title: {
-              //     display: true,
-              //     text: cumulativeMlToggle.checked ? "Pump mL cumulative" : "Pump mL added",
-              //   },
               suggestedMin: cumulativeMlToggle.checked ? undefined : 0,
               suggestedMax: cumulativeMlToggle.checked ? undefined : 10, // Adjust as needed
+              title: {
+                display: true,
+                text: cumulativeMlToggle.checked ? "Pump mL cumulative" : "Pump mL added",
+              },
             },
           },
-          animation: {
-            duration: 0, // Disable animations for faster updates
+          plugins: {
+            legend: {
+              display: true,
+            },
           },
+          animation: false,
         },
       });
     }
+
+    // Apply Display Preferences from Local Storage
+    const displayHumidityChart = localStorage.getItem("displayHumidityChart") === "false" ? false : true;
+    const displayPumpChart = localStorage.getItem("displayPumpChart") === "false" ? false : true;
+
+    // Show or Hide Humidity Chart
+    const humidityChartElement = document.getElementById(humidityChartId);
+    if (humidityChartElement && !displayHumidityChart) humidityChartElement.classList.add("hidden");
+    else if (humidityChartElement) humidityChartElement.classList.remove("hidden");
+
+    // Show or Hide Pump ML Chart
+    const pumpMlChartElement = document.getElementById(pumpMlChartId);
+    if (pumpMlChartElement && !displayPumpChart) pumpMlChartElement.classList.add("hidden");
+    else if (pumpMlChartElement) pumpMlChartElement.classList.remove("hidden");
   }
 }

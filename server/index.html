@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitoring Dashboard</title>
     <link rel="icon" type="image/png" href="favico.png">
-    <link rel="stylesheet" href="css/styles.css?v=2">
+    <link rel="stylesheet" href="css/styles.css?v=10">
 
     <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -17,21 +17,23 @@
 
     <h3 id="datetime"></h3>
 
-    <!-- Data Source Toggle Switch -->
-    <div id="data-source-toggle">
-        <label>
-            <input type="radio" name="dataSource" value="short" checked>
-            Last 24 hours (1-min steps)
-        </label>
-        <label>
-            <input type="radio" name="dataSource" value="long">
-            All data (1-hour steps)
-        </label>
+    <div id="toggle-container" class="grid-container">
+        <!-- Row 1 -->
+        <div class="grid-title">Time:</div>
+        <label><input type="radio" name="dataSource" value="short" checked>Last 48 hours (1-min steps)</label>
+        <label><input type="radio" name="dataSource" value="long">All data (1-hour steps)</label>
+
+        <!-- Row 2 -->
+        <div class="grid-title">Charts:</div>
+        <label><input type="checkbox" id="displayHumidityChart" checked>&nbsp;Humidity</label>
+        <label><input type="checkbox" id="displayPumpChart" checked>&nbsp;Pump</label>
+
+        <!-- Row 3 -->
+        <div class="grid-title">Data version:</div>
+        <label><input type="checkbox" id="humidityToggle">&nbsp;Humidity raw</label>
+        <label><input type="checkbox" id="cumulativeMlToggle">&nbsp;Cumulative mL</label>
     </div>
 
-    <!-- New Toggle for Cumulative ML -->
-    <label><input type="checkbox" id="humidityToggle">&nbsp;Humidity raw</label>
-    <label><input type="checkbox" id="cumulativeMlToggle">&nbsp;Cumulative mL</label>
 
     <div id="container-charts"></div>
 
@@ -39,8 +41,8 @@
     <div id="sensor-charts"></div>
 
     <!-- External JavaScript Files -->
-    <script src="scripts/dataManager.js?v=2"></script>
-    <script src="scripts/chartManager.js?v=2"></script>
+    <script src="scripts/dataManager.js?v=10"></script>
+    <script src="scripts/chartManager.js?v=10"></script>
 
 </body>
 

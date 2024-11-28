@@ -34,6 +34,7 @@ h1 {
   grid-template-columns: repeat(3, 1fr); /* 3 columns */
   grid-template-rows: repeat(1, auto); /* 1 row */
   gap: 20px; /* Adjust gap between charts */
+  margin-right: 18px;
 }
 
 /* Grid container for container charts */
@@ -42,6 +43,7 @@ h1 {
   grid-template-columns: repeat(3, 1fr); /* 3 columns */
   grid-template-rows: repeat(2, auto); /* 2 rows */
   gap: 20px; /* Adjust gap between charts */
+  margin-right: 1px;
 }
 
 /* Common styling for chart containers */
@@ -61,21 +63,27 @@ h1 {
   font-size: 1.2em;
 }
 
-/* styles.css */
-
-#data-source-toggle,
-#humidityToggle,
-#cumulativeMlToggle {
-  margin: 10px 0;
-}
-
 label {
   margin-right: 15px;
   font-family: Arial, sans-serif;
 }
 
-/* .chart-container {
-    width: 100%;
-    max-width: 600px;
-    margin: 20px auto;
-} */
+.hidden {
+  display: none !important;
+}
+
+.div-toggles {
+  margin-bottom: 10px;
+}
+.grid-container {
+  display: flex;
+  gap: 10px; /* Optional: Add spacing between grid items */
+  align-items: left; /* Center content vertically */
+  margin-bottom: 10px;
+}
+
+.grid-title {
+  font-weight: bold;
+  text-align: right;
+  padding-right: 10px; /* Optional: Space between title and checkboxes */
+}

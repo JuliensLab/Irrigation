@@ -384,8 +384,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          * -------- Cleanup Short-Term Data --------
          */
 
-        // Delete entries older than 24 hours
-        $deleteShortTermQuery = "DELETE FROM short_term_sensor_data WHERE date_time < NOW() - INTERVAL 24 HOUR";
+        // Delete entries older than 48 hours
+        $deleteShortTermQuery = "DELETE FROM short_term_sensor_data WHERE date_time < NOW() - INTERVAL 48 HOUR";
         if ($conn->query($deleteShortTermQuery)) {
             $deletedCountShortTerm = $conn->affected_rows;
             if ($deletedCountShortTerm > 0) {
