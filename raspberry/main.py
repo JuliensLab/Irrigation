@@ -2,7 +2,7 @@ from datetime import timedelta
 import PID
 import json
 from CapacitiveSoilSensor import get_raw_sensor_value, get_calibrated_value
-from Pump import start_pump, stop_pump, stop_all_pumps, seconds_for_pump, seconds_to_ml
+from Pump import start_pump, stop_pump, stop_all_pumps, seconds_for_pump
 from log import log_initialize, log_add_entry
 from time import sleep, time
 from datetime import datetime, timedelta

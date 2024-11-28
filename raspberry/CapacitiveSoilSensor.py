@@ -62,7 +62,7 @@ def get_sensor_percent_wet(container_id):
 def get_calibrated_value(container_id, sensor_value):
     dry = SensorCalibration['dry'][container_id]
     wet = SensorCalibration['wet'][container_id]
-    return round(min(1, max(0, (sensor_value-dry)/(wet-dry))), 2)
+    return round(min(1, max(0, (sensor_value-dry)/(wet-dry))), 4)
 
 
 def test():

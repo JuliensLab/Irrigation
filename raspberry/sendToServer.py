@@ -2,7 +2,6 @@ import requests
 import json
 from TemperatureHumidity import getTemperatureHumiditySHT40
 from Pressure import getTemperaturePressureBMP280
-from CapacitiveSoilSensor import get_raw_sensor_value, get_calibrated_value
 from helpers import get_datetime_utc_string
 
 
