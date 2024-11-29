@@ -208,25 +208,27 @@ function updateContainerCharts(organizedData, sensorData) {
       fill: false,
     };
 
-    // Determine Target Value based on Container ID
-    const targetValue = targetValues[container_id];
-    let targetDataset = null;
-    if (targetValue !== undefined) {
-      targetDataset = {
-        label: "Target",
-        data: Array(containerLabels.length).fill(targetValue),
-        borderColor: "rgba(255, 99, 132, 1)", // Red color for target line
-        borderDash: [10, 5], // Dashed line
-        fill: false,
-        pointRadius: 0, // Hide data points
-        tension: 0, // Straight lines
-      };
-    }
-
-    // Combine datasets
     const combinedHumidityDatasets = [humidityDataset];
-    if (targetDataset) {
-      combinedHumidityDatasets.push(targetDataset);
+    if (!humidityToggle.checked) {
+      // Determine Target Value based on Container ID
+      const targetValue = targetValues[container_id];
+      let targetDataset = null;
+      if (targetValue !== undefined) {
+        targetDataset = {
+          label: "Target",
+          data: Array(containerLabels.length).fill(targetValue),
+          borderColor: "rgba(255, 99, 132, 1)", // Red color for target line
+          borderDash: [10, 5], // Dashed line
+          fill: false,
+          pointRadius: 0, // Hide data points
+          tension: 0, // Straight lines
+        };
+      }
+
+      // Combine datasets
+      if (targetDataset) {
+        combinedHumidityDatasets.push(targetDataset);
+      }
     }
 
     // Update or Create Humidity Chart

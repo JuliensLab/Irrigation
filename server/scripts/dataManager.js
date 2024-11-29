@@ -140,8 +140,6 @@ function refreshData() {
       containerDataArray = data.containerData;
       currentSource = data.source; // Update current source based on response
 
-      const scrollPosition = window.scrollY;
-
       // Process and Update Charts
       processDataAndUpdateCharts();
 
