@@ -85,16 +85,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $shortTermSensorDataId = $conn->insert_id;
 
         // Prepare SQL statement for short-term container data
-        $stmtContainerShortTerm = $conn->prepare("INSERT INTO short_term_container_data (sensor_data_id, container_id, humidity_raw, humidity_pct, pump_ml_added) VALUES (?, ?, ?, ?, ?)");
+        $stmtContainerShortTerm = $conn->prepare("INSERT INTO short_term_container_data (sensor_data_id, container_id, humidity_tgt, humidity_raw, humidity_pct, pump_ml_added) VALUES (?, ?, ?, ?, ?)");
         if (!$stmtContainerShortTerm) {
             throw new Exception("Prepare failed for short_term_container_data: " . $conn->error);
         }
-        $stmtContainerShortTerm->bind_param("isddi", $shortTermSensorDataId, $container_id, $humidity_raw, $humidity_pct, $pump_ml_added);
+        $stmtContainerShortTerm->bind_param("isddi", $shortTermSensorDataId, $container_id, $humidity_tgt, $humidity_raw, $humidity_pct, $pump_ml_added);
 
         // Iterate over containers and insert data into short-term container data table
         foreach ($data['containers'] as $container) {
             // Validate container data
-            $container_required_fields = ['container_id', 'humidity_raw', 'humidity_pct', 'pump_ml_added'];
+            $container_required_fields = ['container_id', 'humidity_tgt', 'humidity_raw', 'humidity_pct', 'pump_ml_added'];
             foreach ($container_required_fields as $c_field) {
                 if (!isset($container[$c_field])) {
                     throw new Exception("Invalid container data. Missing field: " . $c_field);
@@ -103,6 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Get values from the container data
             $container_id = $container['container_id'];
+            $humidity_tgt = floatval($container['humidity_tgt']);
             $humidity_raw = floatval($container['humidity_raw']);
             $humidity_pct = floatval($container['humidity_pct']);
             $pump_ml_added = intval($container['pump_ml_added']); // Cast to integer
@@ -260,6 +261,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sqlContainer = "
             SELECT
                 sc.container_id,
+                AVG(sc.humidity_tgt) AS avg_humidity_tgt,
                 AVG(sc.humidity_raw) AS avg_humidity_raw,
                 AVG(sc.humidity_pct) AS avg_humidity_pct,
                 sc_latest.pump_ml_added
@@ -309,6 +311,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          */
         while ($row = $resultContainer->fetch_assoc()) {
             $container_id = $row['container_id'];
+            $avg_humidity_tgt = floatval($row['avg_humidity_tgt']);
             $avg_humidity_raw = floatval($row['avg_humidity_raw']);
             $avg_humidity_pct = floatval($row['avg_humidity_pct']);
             $pump_ml_added = intval($row['pump_ml_added']);
@@ -332,7 +335,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $longTermContainerId = $resultCheckLongTermContainer->fetch_assoc()['id'];
                 $stmtUpdateLongTermContainer = $conn->prepare("
                     UPDATE long_term_container_data
-                    SET humidity_raw = ?, humidity_pct = ?, pump_ml_added = ?
+                    SET humidity_tgt = ?, humidity_raw = ?, humidity_pct = ?, pump_ml_added = ?
                     WHERE id = ?
                 ");
                 if (!$stmtUpdateLongTermContainer) {
@@ -340,6 +343,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $stmtUpdateLongTermContainer->bind_param(
                     "ddii",
+                    $avg_humidity_tgt,
                     $avg_humidity_raw,
                     $avg_humidity_pct,
                     $pump_ml_added,
@@ -352,7 +356,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 // Entry does not exist, perform insert
                 $stmtInsertLongTermContainer = $conn->prepare("
-                    INSERT INTO long_term_container_data (sensor_data_id, container_id, humidity_raw, humidity_pct, pump_ml_added)
+                    INSERT INTO long_term_container_data (sensor_data_id, container_id, humidity_tgt, humidity_raw, humidity_pct, pump_ml_added)
                     VALUES (?, ?, ?, ?, ?)
                 ");
                 if (!$stmtInsertLongTermContainer) {
@@ -362,6 +366,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     "isdii",
                     $longTermSensorId,
                     $container_id,
+                    $avg_humidity_tgt,
                     $avg_humidity_raw,
                     $avg_humidity_pct,
                     $pump_ml_added

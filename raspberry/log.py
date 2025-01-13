@@ -9,6 +9,8 @@ def log_initialize(Containers, local_filepath_log):
 
     # Add dynamic columns for humidity values and pump times based on Containers
     for i in range(len(Containers)):
+        header += f",{Containers[i]}_tgt_humidity"
+    for i in range(len(Containers)):
         header += f",{Containers[i]}_raw_humidity"
     for i in range(len(Containers)):
         header += f",{Containers[i]}_pct_humidity"
@@ -52,6 +54,7 @@ def log_add_entry(Containers, sensor_values, cpu, local_filepath_log, log_pump_m
 
         # Append a dictionary with the sensor values to the list
         sensor_data.append({
+            'humidity_tgt': str(sensor_values[container_id]['tgt']),
             'humidity_raw': str(sensor_values[container_id]['raw']),
             'humidity_pct': str(sensor_values[container_id]['pct']),
             # Use the calculated value here
@@ -59,10 +62,12 @@ def log_add_entry(Containers, sensor_values, cpu, local_filepath_log, log_pump_m
         })
 
     # Add humidity values and pump times separately
+    humidity_tgt_values = [data['humidity_tgt'] for data in sensor_data]
     humidity_raw_values = [data['humidity_raw'] for data in sensor_data]
     humidity_pct_values = [data['humidity_pct'] for data in sensor_data]
     pump_ml_added_values = [data['pump_ml_added'] for data in sensor_data]
 
+    log_entry += "," + ",".join(humidity_tgt_values)
     log_entry += "," + ",".join(humidity_raw_values)
     log_entry += "," + ",".join(humidity_pct_values)
     log_entry += "," + ",".join(pump_ml_added_values) + "\n"

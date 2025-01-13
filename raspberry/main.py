@@ -1,5 +1,4 @@
 from datetime import timedelta
-import PID
 import json
 from CapacitiveSoilSensor import get_raw_sensor_value, get_calibrated_value
 from Pump import start_pump, stop_pump, stop_all_pumps, seconds_for_pump
@@ -19,7 +18,7 @@ import threading
 cpu = CPUTemperature()
 
 Containers = ["A1", "A2", "A3", "B1", "B2", "B3"]
-target_threshold = {"A": 0.8, "B": 0.4}
+target_threshold = {"A": 0.8, "B": 0.8}
 
 # Max ml allowed per container within 24 hours
 max_ml_per_24h = 1000
@@ -80,18 +79,20 @@ def add_ml_to_container(container_id, ml_to_add):
 watering_thresholds = {
     12: 800,  # max ml per 12 hours
     6: 600,   # max ml per 6 hours
-    3: 450,    # max ml per 3 hours
-    1: 200    # max ml per 1 hours
+    3: 400,    # max ml per 3 hours
+    1: 150    # max ml per 1 hours
 }
 
 
-def watering_allowed_ml_time_based(container_id, add_ml_requested):
+def watering_allowed_ml_time_based(container_id, target_percent_wet, add_ml_requested):
     current_time = datetime.now()
 
     # Iterate over all thresholds to compute remaining ml for each time window
     remaining_ml_allowed = float('inf')  # Start with no restriction (infinite)
 
     for hours, max_ml in watering_thresholds.items():
+        max_ml = max_ml * target_percent_wet / 0.8
+        print('max_ml', max_ml)
         cutoff_time = current_time - timedelta(hours=hours)
 
         # Calculate total ml added within this time window
@@ -122,7 +123,7 @@ def check_and_water(container_id, sensor_values):
 
         # Calculate the allowed water based on time-based limits
         ml_to_add_allowed = watering_allowed_ml_time_based(
-            container_id, ml_to_add)
+            container_id, target_percent_wet, ml_to_add)
 
         print(container_id, sensor_percent_wet,
               target_percent_wet, ml_to_add, ml_to_add_allowed)
@@ -164,10 +165,11 @@ def main():
             if current_seconds == 0:
                 print_enviro(cpu)
 
-                values = {c_id: {'raw': None, 'pct': None}
+                values = {c_id: {'tgt': None, 'raw': None, 'pct': None}
                           for c_id in Containers}
                 for c_id in Containers:
                     value = get_raw_sensor_value(c_id)
+                    values[c_id]['tgt'] = target_threshold[c_id[0]]
                     values[c_id]['raw'] = value
                     values[c_id]['pct'] = get_calibrated_value(c_id, value)
 
