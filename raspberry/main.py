@@ -19,6 +19,7 @@ cpu = CPUTemperature()
 
 Containers = ["A1", "A2", "A3", "B1", "B2", "B3"]
 target_threshold = {"A": 0.8, "B": 0.8}
+target_threshold_baseline = 0.8
 
 # Max ml allowed per container within 24 hours
 max_ml_per_24h = 1000
@@ -84,15 +85,16 @@ watering_thresholds = {
 }
 
 
-def watering_allowed_ml_time_based(container_id, target_percent_wet, add_ml_requested):
+def watering_allowed_ml_time_based(container_id, target_percent_wet, target_threshold_baseline, add_ml_requested):
     current_time = datetime.now()
 
     # Iterate over all thresholds to compute remaining ml for each time window
     remaining_ml_allowed = float('inf')  # Start with no restriction (infinite)
 
     for hours, max_ml in watering_thresholds.items():
-        max_ml = max_ml * target_percent_wet / 0.8
-        print('max_ml', max_ml)
+        max_ml = max_ml * target_percent_wet / target_threshold_baseline
+        print()
+        print(max_ml)
         cutoff_time = current_time - timedelta(hours=hours)
 
         # Calculate total ml added within this time window
@@ -123,7 +125,7 @@ def check_and_water(container_id, sensor_values):
 
         # Calculate the allowed water based on time-based limits
         ml_to_add_allowed = watering_allowed_ml_time_based(
-            container_id, target_percent_wet, ml_to_add)
+            container_id, target_percent_wet, target_threshold_baseline, ml_to_add)
 
         print(container_id, sensor_percent_wet,
               target_percent_wet, ml_to_add, ml_to_add_allowed)
