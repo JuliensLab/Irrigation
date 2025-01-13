@@ -7,7 +7,7 @@ from helpers import get_datetime_utc_string
 
 # Global API configuration
 # Replace with your actual API URL and key
-api = {"url": 'https://irrigationmars.com/api/api_store_short_term_data.php',
+api = {"url": 'https://irrigationmars.com/api/api_store_data.php',
        "key": 'hiufew8GQRYHW%W651#!!&79uojjbho89gRWpio'}
 
 

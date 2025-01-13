@@ -49,17 +49,17 @@ CREATE TABLE long_term_container_data (
 CREATE INDEX idx_short_term_sensor_date_time ON short_term_sensor_data(date_time);
 
 -- short_term_container_data
-CREATE INDEX idx_short_term_container_sensor_id ON short_term_container_data(short_term_sensor_data_id);
+CREATE INDEX idx_short_term_container_sensor_id ON short_term_container_data(sensor_data_id);
 CREATE INDEX idx_short_term_container_container_id ON short_term_container_data(container_id);
-CREATE INDEX idx_short_term_container_sensor_container ON short_term_container_data(short_term_sensor_data_id, container_id);
+CREATE INDEX idx_short_term_container_sensor_container ON short_term_container_data(sensor_data_id, container_id);
 
 -- long_term_sensor_data
 CREATE INDEX idx_long_term_sensor_date_time ON long_term_sensor_data(date_time);
 
 -- long_term_container_data
-CREATE INDEX idx_long_term_container_sensor_id ON long_term_container_data(long_term_sensor_data_id);
+CREATE INDEX idx_long_term_container_sensor_id ON long_term_container_data(sensor_data_id);
 CREATE INDEX idx_long_term_container_container_id ON long_term_container_data(container_id);
-CREATE INDEX idx_long_term_container_sensor_container ON long_term_container_data(long_term_sensor_data_id, container_id);
+CREATE INDEX idx_long_term_container_sensor_container ON long_term_container_data(sensor_data_id, container_id);
 
 -- verification 
 SHOW INDEX FROM short_term_sensor_data;
