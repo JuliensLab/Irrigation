@@ -33,7 +33,7 @@ if (!is_ip_allowed($client_ip)) {
 // Get the raw POST data
 $data = json_decode(file_get_contents("php://input"), true);
 
-file_put_contents('debug_incoming.json', json_encode($data, JSON_PRETTY_PRINT));
+// file_put_contents('debug_incoming.json', json_encode($data, JSON_PRETTY_PRINT));
 
 
 // Authenticate using API key
