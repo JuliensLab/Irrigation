@@ -33,6 +33,9 @@ if (!is_ip_allowed($client_ip)) {
 // Get the raw POST data
 $data = json_decode(file_get_contents("php://input"), true);
 
+file_put_contents('debug_incoming.json', json_encode($data, JSON_PRETTY_PRINT));
+
+
 // Authenticate using API key
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $received_api_key = isset($data['api_key']) ? $data['api_key'] : '';
@@ -85,11 +88,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $shortTermSensorDataId = $conn->insert_id;
 
         // Prepare SQL statement for short-term container data
-        $stmtContainerShortTerm = $conn->prepare("INSERT INTO short_term_container_data (sensor_data_id, container_id, humidity_tgt, humidity_raw, humidity_pct, pump_ml_added) VALUES (?, ?, ?, ?, ?)");
+        $stmtContainerShortTerm = $conn->prepare("INSERT INTO short_term_container_data (sensor_data_id, container_id, humidity_tgt, humidity_raw, humidity_pct, pump_ml_added) VALUES (?, ?, ?, ?, ?, ?)");
         if (!$stmtContainerShortTerm) {
             throw new Exception("Prepare failed for short_term_container_data: " . $conn->error);
         }
-        $stmtContainerShortTerm->bind_param("isddi", $shortTermSensorDataId, $container_id, $humidity_tgt, $humidity_raw, $humidity_pct, $pump_ml_added);
+        $stmtContainerShortTerm->bind_param("isdddi", $shortTermSensorDataId, $container_id, $humidity_tgt, $humidity_raw, $humidity_pct, $pump_ml_added);
 
         // Iterate over containers and insert data into short-term container data table
         foreach ($data['containers'] as $container) {
@@ -342,7 +345,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception("Prepare failed for updating long_term_container_data: " . $conn->error);
                 }
                 $stmtUpdateLongTermContainer->bind_param(
-                    "ddii",
+                    "dddii",
                     $avg_humidity_tgt,
                     $avg_humidity_raw,
                     $avg_humidity_pct,
@@ -357,13 +360,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Entry does not exist, perform insert
                 $stmtInsertLongTermContainer = $conn->prepare("
                     INSERT INTO long_term_container_data (sensor_data_id, container_id, humidity_tgt, humidity_raw, humidity_pct, pump_ml_added)
-                    VALUES (?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?)
                 ");
                 if (!$stmtInsertLongTermContainer) {
                     throw new Exception("Prepare failed for inserting into long_term_container_data: " . $conn->error);
                 }
                 $stmtInsertLongTermContainer->bind_param(
-                    "isdii",
+                    "isdddi",
                     $longTermSensorId,
                     $container_id,
                     $avg_humidity_tgt,

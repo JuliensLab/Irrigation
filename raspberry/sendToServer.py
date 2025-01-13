@@ -36,6 +36,7 @@ def send_data_to_server(values, cpu, log_pump_ml_added, Containers):
                             for entry in log_pump_ml_added[container_id])
         data = {
             'container_id': container_id,
+            'humidity_tgt': values[container_id]['tgt'],
             'humidity_raw': values[container_id]['raw'],
             'humidity_pct': values[container_id]['pct'],
             'pump_ml_added': pump_ml_added

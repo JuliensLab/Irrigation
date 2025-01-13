@@ -1,15 +1,5 @@
 // scripts/chartManager.js
 
-// Define target values based on container groups
-const targetValues = {
-  A1: 80,
-  A2: 80,
-  A3: 80,
-  B1: 40,
-  B2: 40,
-  B3: 40,
-};
-
 // Object to store Chart instances
 const sensorCharts = {};
 const containerCharts = {};
@@ -208,15 +198,24 @@ function updateContainerCharts(organizedData, sensorData) {
       fill: false,
     };
 
+    // Build combined humidity datasets
     const combinedHumidityDatasets = [humidityDataset];
+
+    // If we're in percentage mode (not raw), add the target line if it exists
     if (!humidityToggle.checked) {
-      // Determine Target Value based on Container ID
-      const targetValue = targetValues[container_id];
+      // We'll map every entry's humidity_tgt to a line
+      // multiplied by 100 for a percentage-based chart.
       let targetDataset = null;
-      if (targetValue !== undefined) {
+      const targetData = container_array.map((c) => {
+        // Safety check if humidity_tgt is missing/undefined on any entry
+        return c.humidity_tgt !== undefined && c.humidity_tgt !== null ? c.humidity_tgt * 100 : null;
+      });
+
+      // Only create the dataset if we have at least some valid target values
+      if (targetData.some((v) => v !== null)) {
         targetDataset = {
           label: "Target",
-          data: Array(containerLabels.length).fill(targetValue),
+          data: targetData,
           borderColor: "rgba(255, 99, 132, 1)", // Red color for target line
           borderDash: [10, 5], // Dashed line
           fill: false,
