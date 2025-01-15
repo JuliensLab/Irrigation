@@ -31,6 +31,7 @@ pump_ml_log_file_path = "/home/pi/Irrigation/raspberry/log/pump_ml_log.json"
 upload_lock = threading.Lock()
 # Modified log to track water added with timestamps
 log_pump_ml_added = {container_id: [] for container_id in Containers}
+low_pass_filter_values = {container_id: None for container_id in Containers}
 
 # Track pump threads for graceful stop
 pump_threads = []
@@ -78,10 +79,10 @@ def add_ml_to_container(container_id, ml_to_add):
 
 # Update watering thresholds
 watering_thresholds = {
-    12: 800,  # max ml per 12 hours
-    6: 600,   # max ml per 6 hours
-    3: 400,    # max ml per 3 hours
-    1: 150    # max ml per 1 hours
+    12: 1000,  # max ml per 12 hours
+    6: 800,   # max ml per 6 hours
+    3: 500,    # max ml per 3 hours
+    1: 200    # max ml per 1 hours
 }
 
 
@@ -92,7 +93,7 @@ def watering_allowed_ml_time_based(container_id, target_percent_wet, target_thre
     remaining_ml_allowed = float('inf')  # Start with no restriction (infinite)
 
     for hours, max_ml in watering_thresholds.items():
-        max_ml = max_ml * target_percent_wet / target_threshold_baseline
+        # max_ml = max_ml * target_percent_wet / target_threshold_baseline
         cutoff_time = current_time - timedelta(hours=hours)
 
         # Calculate total ml added within this time window
@@ -111,21 +112,35 @@ def watering_allowed_ml_time_based(container_id, target_percent_wet, target_thre
     return min(add_ml_requested, remaining_ml_allowed) if remaining_ml_allowed > 0 else 0
 
 
+def low_pass_filter(container_id, value):
+    factor = 4
+    if low_pass_filter_values[container_id] == None:
+        low_pass_filter_values[container_id] = value
+    else:
+        low_pass_filter_values[container_id] = (
+            low_pass_filter_values[container_id] * (factor-1) + value) / factor
+    return low_pass_filter_values[container_id]
+
+
 def check_and_water(container_id, sensor_values):
     sensor_percent_wet = sensor_values[container_id]['pct']
+    filtered_sensor_percent_wet = low_pass_filter(
+        container_id, sensor_percent_wet)
     target_percent_wet = target_threshold[container_id[0]]  # 'A' or 'B'
 
-    if sensor_percent_wet >= target_percent_wet:
-        print(f"Container {container_id} ({sensor_percent_wet * 100:.1f}%) OK")
+    if filtered_sensor_percent_wet >= target_percent_wet:
+        print(
+            f"Container {container_id} ({filtered_sensor_percent_wet * 100:.1f}%) OK")
     else:
         # Calculate the amount of water to add based on humidity difference
-        ml_to_add = round((target_percent_wet - sensor_percent_wet) * 10)
+        ml_to_add = round(
+            (target_percent_wet - filtered_sensor_percent_wet) * 10)
 
         # Calculate the allowed water based on time-based limits
         ml_to_add_allowed = watering_allowed_ml_time_based(
             container_id, target_percent_wet, target_threshold_baseline, ml_to_add)
 
-        print(container_id, sensor_percent_wet,
+        print(container_id, filtered_sensor_percent_wet,
               target_percent_wet, ml_to_add, ml_to_add_allowed)
 
         if ml_to_add_allowed > 0:
@@ -136,7 +151,7 @@ def check_and_water(container_id, sensor_values):
                 {"time": current_time.isoformat(), "ml": ml_to_add_allowed})
             save_log_pump_ml_added()  # Save log of ml added
             print(
-                f"Container {container_id} ({sensor_percent_wet * 100:.1f}%) too dry - humidifying with {ml_to_add_allowed:.0f} ml (Time-based)")
+                f"Container {container_id} ({filtered_sensor_percent_wet * 100:.1f}%) too dry - humidifying with {ml_to_add_allowed:.0f} ml (Time-based)")
 
             # Create and track pump thread
             pump_thread = threading.Thread(
@@ -145,7 +160,7 @@ def check_and_water(container_id, sensor_values):
             pump_thread.start()
         else:
             print(
-                f"Container {container_id} ({sensor_percent_wet * 100:.1f}%) no watering needed at this time (Time-based)")
+                f"Container {container_id} ({filtered_sensor_percent_wet * 100:.1f}%) no watering needed at this time (Time-based)")
 
 
 def main():
@@ -182,7 +197,7 @@ def main():
 
                 # Send the data to the server
                 threading.Thread(target=send_data_to_server, args=(
-                    values,  cpu, log_pump_ml_added, Containers)).start()
+                    values, cpu, log_pump_ml_added, Containers)).start()
 
                 sleep_duration = 60 - datetime.now().second - 1
                 sleep(sleep_duration)
