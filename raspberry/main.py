@@ -79,11 +79,12 @@ def add_ml_to_container(container_id, ml_to_add):
 
 # Update watering thresholds
 watering_thresholds = {
-    12: 1000,  # max ml per 12 hours
-    6: 800,   # max ml per 6 hours
-    3: 500,    # max ml per 3 hours
-    1: 200    # max ml per 1 hours
+    12: 3 * 1000,  # max ml per 12 hours / 83mL/h
+    6: 3 * 800,   # max ml per 6 hours / 133mL/h
+    3: 3 * 500,    # max ml per 3 hours / 166mL/h
+    1: 3 * 200    # max ml per 1 hours / 200mL/h
 }
+P_factor = 30
 
 
 def watering_allowed_ml_time_based(container_id, target_percent_wet, target_threshold_baseline, add_ml_requested):
@@ -134,7 +135,7 @@ def check_and_water(container_id, sensor_values):
     else:
         # Calculate the amount of water to add based on humidity difference
         ml_to_add = round(
-            (target_percent_wet - filtered_sensor_percent_wet) * 10)
+            (target_percent_wet - filtered_sensor_percent_wet) * P_factor)
 
         # Calculate the allowed water based on time-based limits
         ml_to_add_allowed = watering_allowed_ml_time_based(
