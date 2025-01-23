@@ -18,7 +18,7 @@ import threading
 cpu = CPUTemperature()
 
 Containers = ["A1", "A2", "A3", "B1", "B2", "B3"]
-target_threshold = {"A": 0.8, "B": 0.4}
+target_threshold = {"A": 0.8, "B": 0.6}
 target_threshold_baseline = 0.8
 
 # Max ml allowed per container within 24 hours
