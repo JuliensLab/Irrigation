@@ -134,8 +134,9 @@ def check_and_water(container_id, sensor_values):
             f"Container {container_id} ({filtered_sensor_percent_wet * 100:.1f}%) OK")
     else:
         # Calculate the amount of water to add based on humidity difference
-        ml_to_add = round(
-            (target_percent_wet - filtered_sensor_percent_wet) * P_factor)
+        ml_to_add = 0
+        # ml_to_add = round(
+        #     (target_percent_wet - filtered_sensor_percent_wet) * P_factor)
 
         # Calculate the allowed water based on time-based limits
         ml_to_add_allowed = watering_allowed_ml_time_based(
