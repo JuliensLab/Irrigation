@@ -94,7 +94,7 @@ def watering_allowed_ml_time_based(container_id, target_percent_wet, target_thre
     remaining_ml_allowed = float('inf')  # Start with no restriction (infinite)
 
     for hours, max_ml in watering_thresholds.items():
-        # max_ml = max_ml * target_percent_wet / target_threshold_baseline
+        max_ml = max_ml * target_percent_wet / target_threshold_baseline
         cutoff_time = current_time - timedelta(hours=hours)
 
         # Calculate total ml added within this time window
