@@ -28,6 +28,22 @@ h1 {
   color: #333;
 }
 
+/* Flex container for header (datetime and button) */
+#header-container {
+  display: flex;
+  justify-content: space-between; /* Distributes space between items */
+  align-items: center; /* Vertically centers items */
+  flex-wrap: wrap; /* Allows items to wrap on smaller screens */
+  margin-bottom: 20px; /* Adds space below the header */
+}
+
+/* Styling for the datetime */
+#datetime {
+  font-size: 1.2em;
+  color: #333;
+  margin: 0; /* Removes default margin */
+}
+
 /* Grid container for sensor charts */
 #sensor-charts {
   display: grid;
@@ -75,10 +91,11 @@ label {
 .div-toggles {
   margin-bottom: 10px;
 }
+
 .grid-container {
-  display: flex;
+  display: flex; /* Changed from grid to flex for better responsiveness */
   gap: 10px; /* Optional: Add spacing between grid items */
-  align-items: left; /* Center content vertically */
+  align-items: center; /* Center content vertically */
   margin-bottom: 10px;
 }
 
@@ -86,4 +103,43 @@ label {
   font-weight: bold;
   text-align: right;
   padding-right: 10px; /* Optional: Space between title and checkboxes */
+}
+
+/* Download Button Styling */
+#download-buttons {
+  display: flex;
+  gap: 10px; /* Space between buttons, though now only one button exists */
+}
+
+#download-buttons button {
+  padding: 8px 16px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+#download-buttons button:hover {
+  background-color: #45a049;
+}
+
+/* Disabled Button Styling */
+#download-buttons button:disabled {
+  background-color: #a5d6a7;
+  cursor: not-allowed;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 600px) {
+  #header-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  #download-buttons {
+    margin-top: 10px;
+  }
 }
