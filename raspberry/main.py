@@ -114,7 +114,7 @@ def watering_allowed_ml_time_based(container_id, target_percent_wet, target_thre
 
 
 def low_pass_filter(container_id, value):
-    factor = 4
+    factor = 10
     if low_pass_filter_values[container_id] == None:
         low_pass_filter_values[container_id] = value
     else:
